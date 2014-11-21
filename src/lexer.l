@@ -58,6 +58,7 @@ if { return TOKEN_IF; }
 else { return TOKEN_ELSE; }
 var { return TOKEN_VAR; }
 def { return TOKEN_DEF; }
+return { return TOKEN_RETURN; }
 
 {NUMBER} { SAVE_TOKEN; return TOKEN_NUMBER; }
 {IDENTIFIER} { SAVE_TOKEN; return TOKEN_IDENTIFIER; }

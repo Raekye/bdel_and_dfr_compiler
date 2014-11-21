@@ -56,12 +56,12 @@ typedef void* yyscan_t;
 
 %token TOKEN_LPAREN TOKEN_RPAREN TOKEN_ASSIGN TOKEN_LBRACE TOKEN_RBRACE
 %token TOKEN_ADD TOKEN_MULTIPLY TOKEN_DIVIDE TOKEN_SUBTRACT
-%token TOKEN_COMMA TOKEN_IF TOKEN_ELSE TOKEN_VAR TOKEN_DEF
+%token TOKEN_COMMA TOKEN_IF TOKEN_ELSE TOKEN_VAR TOKEN_DEF TOKEN_RETURN
 %token TOKEN_SEMICOLON
 %token <str> TOKEN_NUMBER TOKEN_IDENTIFIER
 
-%type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr
-%type <block> stmts
+%type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr top_level_expr
+%type <block> stmts function_list
 %type <identifier> identifier
 %type <function_prototype> function_prototype_expr
 %type <declaration> declaration_expr
@@ -73,7 +73,15 @@ typedef void* yyscan_t;
 %%
 
 program
-	: stmts { *root = $1; }
+	: function_list { *root = $1; }
+	;
+
+function_list
+	: top_level_expr TOKEN_SEMICOLON {
+		$$ = new ASTNodeBlock();
+		$$->push($1);
+	}
+	| stmts top_level_expr TOKEN_SEMICOLON { $$->push($2); }
 	;
 
 stmts
@@ -84,6 +92,11 @@ stmts
 	| stmts expr TOKEN_SEMICOLON { $$->push($2); }
 	;
 
+top_level_expr
+	: function_expr { $$ = $1; }
+	| function_prototype_expr { $$ = $1; }
+	;
+
 expr
 	: TOKEN_LPAREN expr TOKEN_RPAREN { $$ = $2; }
 	| number { $$ = $1; }
@@ -91,8 +104,6 @@ expr
 	| declaration_expr { $$ = $1; }
 	| assignment_expr { $$ = $1; }
 	| if_else_expr { $$ = $1; }
-	| function_expr { $$ = $1; }
-	| function_prototype_expr { $$ = new ASTNodeFunction($1, NULL); }
 	| function_call_expr { $$ = $1; }
 	| binary_operator_expr { $$ = $1; }
 	| declaration_expr TOKEN_ASSIGN expr {
