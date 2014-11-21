@@ -1,0 +1,5 @@
+bin/
+src/lexer.h
+src/lexer.cpp
+src/parser.h
+src/parser.cpp
