@@ -1,12 +1,18 @@
-def foo(var x, var y);
+def fib(var x);
 
 def main() {
-	var a;
-	a = 3;
-	foo(a, a);
+	var a = 20;
+	fib(a);
 }
 
-def foo(var x, var y) {
-	var z;
-	z = x + y;
+def fib(var x) {
+	if (x == 0) {
+		0;
+	} else {
+		if (x == 1) {
+			1;
+		} else {
+			fib(x - 1) + fib(x - 2);
+		};
+	};
 }

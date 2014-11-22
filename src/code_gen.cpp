@@ -55,13 +55,13 @@ ASTNode* CodeGen::parse(std::istream* in) {
 }
 
 void CodeGen::gen_program(ASTNode* root) {
-	std::cout << "jump :_after" << std::endl;
+	std::cout << "jump :_after_" << std::endl;
 	root->accept(this);
 	this->verify();
-	std::cout << "_after:" << std::endl;
-	std::cout << "literal :_end r" << CodeGen::REGISTER_RETURN_ADDRESS << std::endl;
+	std::cout << "_after_:" << std::endl;
+	std::cout << "literal :_end_ r" << CodeGen::REGISTER_RETURN_ADDRESS << std::endl;
 	std::cout << "jump :" << this->main_label << std::endl;
-	std::cout << "_end:" << std::endl;
+	std::cout << "_end_:" << std::endl;
 	std::cout << "eof" << std::endl;
 }
 
@@ -164,6 +164,7 @@ void CodeGen::visit(ASTNodeBinaryOperator* node) {
 			break;
 		case eEQ:
 			std::cout << "cmp r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
+			break;
 		case eLT:
 			std::cout << "cmp r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
 			std::cout << "inc r" << reg_c << std::endl;
@@ -257,11 +258,11 @@ void CodeGen::visit(ASTNodeIfElse* node) {
 	std::cout << "jump :_" << l2 << "_branch_" << std::endl;
 	std::cout << "_" << l1 << "_branch_:" << std::endl;
 	node->if_true->accept(this);
-	std::cout << "mov r" << this->current_register << " r" << reg_c;
+	std::cout << "mov r" << this->current_register << " r" << reg_c << std::endl;
 	std::cout << "jump :_" << l3 << "_merge_" << std::endl;
 	std::cout << "_" << l2 << "_branch_:" << std::endl;
 	node->if_false->accept(this);
-	std::cout << "mov r" << this->current_register << " r" << reg_c;
+	std::cout << "mov r" << this->current_register << " r" << reg_c << std::endl;
 	std::cout << "jump :_" << l3 << "_merge_" << std::endl;
 	std::cout << "_" << l3 << "_merge_:" << std::endl;
 	this->current_register = reg_c;
