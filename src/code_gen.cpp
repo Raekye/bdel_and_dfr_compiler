@@ -3,8 +3,15 @@
 #include "lexer.h"
 #include <sstream>
 
-CodeGen::CodeGen() {
+CodeGen::CodeGen(int32_t num_registers_useable, int32_t register_tmp, int32_t register_result, int32_t register_return_address, int32_t register_return_value) {
 	this->labels = 0;
+	this->num_registers_useable = num_registers_useable;
+	this->register_tmp = register_tmp;
+	this->register_result = register_result;
+	this->register_return_address = register_return_address;
+	this->register_return_value = register_return_value;
+	this->registers_with_locals = new std::string[this->num_registers_useable];
+	this->registers_last_used = new int32_t[this->num_registers_useable];
 	this->clear();
 }
 
@@ -12,12 +19,18 @@ CodeGen::~CodeGen() {
 	for (std::map<std::string, CodeGenFunction*>::iterator it = this->functions.begin(); it != this->functions.end(); it++) {
 		delete it->second;
 	}
+	delete[] this->registers_with_locals;
+	delete[] this->registers_last_used;
+	for (std::list<ASTNodeFunction*>::iterator it = this->liberate_me.begin(); it != this->liberate_me.end(); it++) {
+		(*it)->prototype = NULL;
+		delete *it;
+	}
 }
 
 void CodeGen::clear() {
 	this->locals.clear();
 	this->locals_in_registers.clear();
-	for (int32_t i = 0; i < NUM_REGISTERS_USEABLE; i++) {
+	for (int32_t i = 0; i < this->num_registers_useable; i++) {
 		registers_with_locals[i] = "-";
 		registers_last_used[i] = 0;
 	}
@@ -39,10 +52,7 @@ ASTNode* CodeGen::parse(std::istream* in) {
 	std::string code;
 	ASTNode* root = NULL;
 	std::string line;
-	while (true) {
-		if (!std::getline(std::cin, line)) {
-			break;
-		}
+	while (std::getline(*in, line)) {
 		code += line + "\n";
 	}
 	yyscan_t scanner;
@@ -50,6 +60,7 @@ ASTNode* CodeGen::parse(std::istream* in) {
 	yylex_init(&scanner);
 	buffer = yy_scan_string(code.c_str(), scanner);
 	yyparse(&root, scanner);
+	yy_delete_buffer(buffer, scanner);
 	yylex_destroy(scanner);
 	return root;
 }
@@ -59,15 +70,15 @@ void CodeGen::gen_program(ASTNode* root) {
 	root->accept(this);
 	this->verify();
 	std::cout << "_after_:" << std::endl;
-	std::cout << "literal :_end_ r" << CodeGen::REGISTER_RETURN_ADDRESS << std::endl;
+	std::cout << "literal :_end_ r" << this->register_return_address << std::endl;
 	std::cout << "jump :" << this->main_label << std::endl;
 	std::cout << "_end_:" << std::endl;
 	std::cout << "eof" << std::endl;
 }
 
 int32_t CodeGen::next_register() {
-	if (this->locals_in_registers.size() < NUM_REGISTERS_USEABLE) {
-		for (int32_t i = 0; i < NUM_REGISTERS_USEABLE; i++) {
+	if (this->locals_in_registers.size() < this->num_registers_useable) {
+		for (int32_t i = 0; i < this->num_registers_useable; i++) {
 			if (registers_with_locals[i] == "-") {
 				return i;
 			}
@@ -75,7 +86,7 @@ int32_t CodeGen::next_register() {
 		throw std::runtime_error("Badness");
 	}
 	int32_t min_index = 0;
-	for (int32_t i = 1; i < NUM_REGISTERS_USEABLE; i++) {
+	for (int32_t i = 1; i < this->num_registers_useable; i++) {
 		if (registers_last_used[i] < registers_last_used[min_index]) {
 			min_index = i;
 		}
@@ -145,10 +156,11 @@ void CodeGen::visit(ASTNodeAssignment* node) {
 
 void CodeGen::visit(ASTNodeBinaryOperator* node) {
 	node->lhs->accept(this);
-	int32_t reg_a = this->current_register;
+	std::cout << "mov r" << this->current_register << " r" << this->register_tmp << std::endl;
+	int32_t reg_a = this->register_tmp;
 	node->rhs->accept(this);
 	int32_t reg_b = this->current_register;
-	int32_t reg_c = CodeGen::REGISTER_RESULT;
+	int32_t reg_c = this->register_result;
 	switch (node->op) {
 		case eADD:
 			std::cout << "add r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
@@ -183,7 +195,9 @@ void CodeGen::visit(ASTNodeFunctionPrototype* node) {
 	if (it != this->functions.end()) {
 		throw std::runtime_error("Function already declared");
 	}
-	this->functions[node->function_name] = new CodeGenFunction(new ASTNodeFunction(node, NULL), this->labels++);
+	ASTNodeFunction* fn = new ASTNodeFunction(node, NULL);
+	this->liberate_me.push_back(fn);
+	this->functions[node->function_name] = new CodeGenFunction(fn, this->labels++);
 	this->nodes_visited++;
 }
 
@@ -198,8 +212,8 @@ void CodeGen::visit(ASTNodeFunction* node) {
 		it = this->functions.find(node->prototype->function_name);
 	}
 	int32_t label = std::get<1>(*(it->second));
+	delete it->second;
 	it->second = new CodeGenFunction(node, label);
-	this->functions[node->prototype->function_name] = new CodeGenFunction(node, label);
 	std::cout << "_" << label << "__" << node->prototype->function_name << ":" <<  std::endl;
 
 	int32_t i = 0;
@@ -209,8 +223,8 @@ void CodeGen::visit(ASTNodeFunction* node) {
 	}
 	node->body->accept(this);
 	std::cout << "stack -" << this->locals.size() << std::endl;
-	std::cout << "mov r" << this->current_register << " r" << CodeGen::REGISTER_RETURN_VALUE << std::endl;
-	std::cout << "jump r" << CodeGen::REGISTER_RETURN_ADDRESS << std::endl;
+	std::cout << "mov r" << this->current_register << " r" << this->register_return_value << std::endl;
+	std::cout << "jump r" << this->register_return_address << std::endl;
 
 	if (node->prototype->function_name == "main") {
 		std::stringstream ss;
@@ -237,18 +251,20 @@ void CodeGen::visit(ASTNodeFunctionCall* node) {
 		std::cout << "store r" << this->current_register << " " << i + 1 << std::endl;
 		i++;
 	}
-	std::cout << "literal :" << "_" << this->labels << "_call_" << prototype->function_name << " r" << CodeGen::REGISTER_RETURN_ADDRESS << std::endl;
+	std::cout << "literal :" << "_" << this->labels << "_call_" << prototype->function_name << " r" << this->register_return_address << std::endl;
+	std::cout << "supermandive" << std::endl;
 	std::cout << "jump :" << "_" << std::get<1>(*(it->second)) << "__" << prototype->function_name << std::endl;
 	std::cout << "_" << this->labels << "_call_" << prototype->function_name << ":" << std::endl;
 	// function return already does this
 	//std::cout << "stack -" << prototype->args->size() << std::endl;
+	std::cout << "getup" << std::endl;
 	this->labels++;
-	this->current_register = CodeGen::REGISTER_RETURN_VALUE;
+	this->current_register = this->register_return_value;
 	this->nodes_visited++;
 }
 
 void CodeGen::visit(ASTNodeIfElse* node) {
-	int32_t reg_c = CodeGen::REGISTER_RESULT;
+	int32_t reg_c = this->register_result;
 	node->cond->accept(this);
 	std::cout << "branch r" << this->current_register << std::endl;
 	int32_t l1 = this->labels++;
