@@ -6,7 +6,7 @@
 #include "ast.h"
 
 void yyerror(YYLTYPE* llocp, ASTNode**, yyscan_t scanner, const char *s) {
-	std::cerr << "YYERROR: " << s << std::endl;
+	std::cerr << "YYERROR: " << s << ", " << llocp->first_line << ", " << llocp->first_column << ", " << llocp->last_line << ", " << llocp->last_column << std::endl;
 }
 
 %}
@@ -77,11 +77,11 @@ program
 	;
 
 function_list
-	: top_level_expr TOKEN_SEMICOLON {
+	: top_level_expr {
 		$$ = new ASTNodeBlock();
 		$$->push($1);
 	}
-	| stmts top_level_expr TOKEN_SEMICOLON { $$->push($2); }
+	| function_list top_level_expr { $$->push($2); }
 	;
 
 stmts
@@ -94,7 +94,7 @@ stmts
 
 top_level_expr
 	: function_expr { $$ = $1; }
-	| function_prototype_expr { $$ = $1; }
+	| function_prototype_expr TOKEN_SEMICOLON { $$ = $1; }
 	;
 
 expr
@@ -184,6 +184,7 @@ identifier_list
 	| identifier_list TOKEN_COMMA declaration_expr {
 		$$->push_back($3);
 	}
+	| { $$ = new std::vector<ASTNodeDeclaration*>(); }
 	;
 
 args_list
@@ -194,4 +195,5 @@ args_list
 	| args_list TOKEN_COMMA expr {
 		$$->push_back($3);
 	}
+	| { $$ = new std::vector<ASTNode*>(); }
 	;

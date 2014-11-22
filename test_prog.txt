@@ -1,0 +1,12 @@
+def foo(var x, var y);
+
+def main() {
+	var a;
+	a = 3;
+	foo(a, a);
+}
+
+def foo(var x, var y) {
+	var z;
+	z = x + y;
+}

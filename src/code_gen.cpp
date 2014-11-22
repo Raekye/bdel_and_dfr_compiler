@@ -1,9 +1,11 @@
 #include "code_gen.h"
 #include "parser.h"
 #include "lexer.h"
+#include <sstream>
 
 CodeGen::CodeGen() {
-	return;
+	this->labels = 0;
+	this->clear();
 }
 
 CodeGen::~CodeGen() {
@@ -35,7 +37,7 @@ void CodeGen::verify() {
 
 ASTNode* CodeGen::parse(std::istream* in) {
 	std::string code;
-	ASTNode* root;
+	ASTNode* root = NULL;
 	std::string line;
 	while (true) {
 		if (!std::getline(std::cin, line)) {
@@ -56,7 +58,7 @@ void CodeGen::gen_program(ASTNode* root) {
 	std::cout << "jump :_after" << std::endl;
 	root->accept(this);
 	this->verify();
-	std::cout << ":_after" << std::endl;
+	std::cout << "_after:" << std::endl;
 	std::cout << "literal :_end r" << CodeGen::REGISTER_RETURN_ADDRESS << std::endl;
 	std::cout << "jump :" << this->main_label << std::endl;
 	std::cout << "_end:" << std::endl;
@@ -105,13 +107,18 @@ void CodeGen::visit(ASTNodeIdentifier* node) {
 
 void CodeGen::visit(ASTNodeLiteral* node) {
 	int32_t index = this->next_register();
-	std::cout << "literal " << node->val << "r" << index << std::endl;
+	std::cout << "literal " << node->val << " r" << index << std::endl;
 	this->current_register = index;
 	this->nodes_visited++;
 }
 
 void CodeGen::visit(ASTNodeDeclaration* node) {
-	this->locals[node->var_name] = this->locals.size();
+	std::map<std::string, int32_t>::iterator declared = this->locals.find(node->var_name);
+	if (declared != this->locals.end()) {
+		throw std::runtime_error("Identifier already declared");
+	}
+	int32_t num_locals = this->locals.size();
+	this->locals[node->var_name] = num_locals;
 	std::cout << "stack 1" << std::endl;
 	this->nodes_visited++;
 }
@@ -171,18 +178,28 @@ void CodeGen::visit(ASTNodeBinaryOperator* node) {
 }
 
 void CodeGen::visit(ASTNodeFunctionPrototype* node) {
-	this->functions[node->function_name] = new CodeGenFunction(new ASTNodeFunction(node, NULL), -1);
+	std::map<std::string, CodeGenFunction*>::iterator it = this->functions.find(node->function_name);
+	if (it != this->functions.end()) {
+		throw std::runtime_error("Function already declared");
+	}
+	this->functions[node->function_name] = new CodeGenFunction(new ASTNodeFunction(node, NULL), this->labels++);
 	this->nodes_visited++;
 }
 
 void CodeGen::visit(ASTNodeFunction* node) {
 	std::map<std::string, CodeGenFunction*>::iterator it = this->functions.find(node->prototype->function_name);
-	if (it != this->functions.end() && std::get<0>(*(it->second))->body != NULL) {
-		throw std::runtime_error("Function already declared");
+	if (it != this->functions.end()) {
+		if (std::get<0>(*(it->second))->body != NULL) {
+			throw std::runtime_error("Function already declared");
+		}
+	} else {
+		node->prototype->accept(this);
+		it = this->functions.find(node->prototype->function_name);
 	}
-	this->functions[node->prototype->function_name] = new CodeGenFunction(node, this->labels);
-	std::cout << "_" << this->labels << "__" << node->prototype->function_name << std::endl;
-	this->labels++;
+	int32_t label = std::get<1>(*(it->second));
+	it->second = new CodeGenFunction(node, label);
+	this->functions[node->prototype->function_name] = new CodeGenFunction(node, label);
+	std::cout << "_" << label << "__" << node->prototype->function_name << ":" <<  std::endl;
 
 	int32_t i = 0;
 	for (std::vector<ASTNodeDeclaration*>::iterator it = node->prototype->args->begin(); it != node->prototype->args->end(); it++) {
@@ -193,6 +210,12 @@ void CodeGen::visit(ASTNodeFunction* node) {
 	std::cout << "stack -" << this->locals.size() << std::endl;
 	std::cout << "mov r" << this->current_register << " r" << CodeGen::REGISTER_RETURN_VALUE << std::endl;
 	std::cout << "jump r" << CodeGen::REGISTER_RETURN_ADDRESS << std::endl;
+
+	if (node->prototype->function_name == "main") {
+		std::stringstream ss;
+		ss << "_" << label << "__" << "main";
+		this->main_label = ss.str();
+	}
 
 	this->clear();
 }
@@ -213,10 +236,11 @@ void CodeGen::visit(ASTNodeFunctionCall* node) {
 		std::cout << "store r" << this->current_register << " " << i + 1 << std::endl;
 		i++;
 	}
-	std::cout << "literal :" << "_" << this->labels << "_call_" << prototype->function_name << std::endl << " r" << CodeGen::REGISTER_RETURN_ADDRESS;
+	std::cout << "literal :" << "_" << this->labels << "_call_" << prototype->function_name << " r" << CodeGen::REGISTER_RETURN_ADDRESS << std::endl;
 	std::cout << "jump :" << "_" << std::get<1>(*(it->second)) << "__" << prototype->function_name << std::endl;
-	std::cout << "_" << this->labels << "_call_" << prototype->function_name << std::endl;
-	std::cout << "stack -" << prototype->args->size() << std::endl;
+	std::cout << "_" << this->labels << "_call_" << prototype->function_name << ":" << std::endl;
+	// function return already does this
+	//std::cout << "stack -" << prototype->args->size() << std::endl;
 	this->labels++;
 	this->current_register = CodeGen::REGISTER_RETURN_VALUE;
 	this->nodes_visited++;
