@@ -137,6 +137,47 @@ public:
 	virtual ~ASTNodeIfElse();
 };
 
+class ASTNodeAssembly : public ASTNode {
+public:
+	std::vector<std::string>* lines;
+
+	ASTNodeAssembly(std::vector<std::string>*);
+	virtual void accept(IASTNodeVisitor*) override;
+
+	virtual ~ASTNodeAssembly();
+};
+
+class ASTNodeEcho : public ASTNode {
+public:
+	std::string str;
+
+	ASTNodeEcho(std::string);
+	virtual void accept(IASTNodeVisitor*) override;
+
+	virtual ~ASTNodeEcho();
+};
+
+class ASTNodeWhileLoop : public ASTNode {
+public:
+	ASTNode* cond;
+	ASTNodeBlock* body;
+
+	ASTNodeWhileLoop(ASTNode*, ASTNodeBlock*);
+	virtual void accept(IASTNodeVisitor*) override;
+
+	virtual ~ASTNodeWhileLoop();
+};
+
+class ASTNodeBreak : public ASTNode {
+public:
+	int32_t times;
+
+	ASTNodeBreak(int32_t);
+	virtual void accept(IASTNodeVisitor*) override;
+
+	virtual ~ASTNodeBreak();
+};
+
 class IASTNodeVisitor {
 public:
 	virtual void visit(ASTNodeIdentifier*) = 0;
@@ -149,6 +190,10 @@ public:
 	virtual void visit(ASTNodeFunction*) = 0;
 	virtual void visit(ASTNodeFunctionCall*) = 0;
 	virtual void visit(ASTNodeIfElse*) = 0;
+	virtual void visit(ASTNodeAssembly*) = 0;
+	virtual void visit(ASTNodeEcho*) = 0;
+	virtual void visit(ASTNodeWhileLoop*) = 0;
+	virtual void visit(ASTNodeBreak*) = 0;
 };
 
 #endif /* __AST_H_ */

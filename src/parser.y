@@ -44,6 +44,7 @@ typedef void* yyscan_t;
 	ASTNodeDeclaration* declaration;
 	std::vector<ASTNodeDeclaration*>* identifier_list;
 	std::vector<ASTNode*>* args_list;
+	std::vector<std::string>* assembly_lines;
 	std::string* str;
 }
 
@@ -51,22 +52,22 @@ typedef void* yyscan_t;
 %left TOKEN_EQ TOKEN_LT TOKEN_GT
 %left TOKEN_ADD TOKEN_SUBTRACT
 %left TOKEN_MULTIPLY TOKEN_DIVIDE
-%left TOKEN_POW
 %left TOKEN_RPAREN
 
 %token TOKEN_LPAREN TOKEN_RPAREN TOKEN_ASSIGN TOKEN_LBRACE TOKEN_RBRACE
 %token TOKEN_ADD TOKEN_MULTIPLY TOKEN_DIVIDE TOKEN_SUBTRACT
-%token TOKEN_COMMA TOKEN_IF TOKEN_ELSE TOKEN_VAR TOKEN_DEF TOKEN_RETURN
+%token TOKEN_COMMA TOKEN_IF TOKEN_ELSE TOKEN_VAR TOKEN_DEF TOKEN_RETURN TOKEN_WHILE TOKEN_ECHO TOKEN_ASM TOKEN_BREAK
 %token TOKEN_SEMICOLON
-%token <str> TOKEN_NUMBER TOKEN_IDENTIFIER
+%token <str> TOKEN_NUMBER TOKEN_IDENTIFIER TOKEN_STRING TOKEN_ASSEMBLY_CODE
 
-%type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr top_level_expr
+%type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr top_level_expr echo_expr while_loop_expr assembly_expr break_expr
 %type <block> stmts function_list
 %type <identifier> identifier
 %type <function_prototype> function_prototype_expr
 %type <declaration> declaration_expr
+%type <assembly_lines> assembly_lines
 %type <identifier_list> identifier_list
-%type <args_list> args_list
+%type <args_list> args_list non_empty_args_list
 
 %start program
 
@@ -106,6 +107,10 @@ expr
 	| if_else_expr { $$ = $1; }
 	| function_call_expr { $$ = $1; }
 	| binary_operator_expr { $$ = $1; }
+	| echo_expr { $$ = $1; }
+	| while_loop_expr { $$ = $1; }
+	| assembly_expr { $$ = $1; }
+	| break_expr { $$ = $1; }
 	| declaration_expr TOKEN_ASSIGN expr {
 		ASTNodeBlock* block = new ASTNodeBlock();
 		block->push($1);
@@ -187,12 +192,53 @@ identifier_list
 	;
 
 args_list
+	: /* epsilon */ {
+		$$ = new std::vector<ASTNode*>();
+	}
+	| non_empty_args_list { $$ = $1; }
+	;
+
+non_empty_args_list
 	: expr {
 		$$ = new std::vector<ASTNode*>();
 		$$->push_back($1);
 	}
-	| args_list TOKEN_COMMA expr {
+	| non_empty_args_list TOKEN_COMMA expr {
 		$$->push_back($3);
 	}
-	| { $$ = new std::vector<ASTNode*>(); }
+	;
+
+assembly_expr
+	: TOKEN_ASM TOKEN_LBRACE assembly_lines TOKEN_RBRACE { $$ = new ASTNodeAssembly($3); }
+	;
+
+assembly_lines
+	: /* epsilon */ {
+		$$ = new std::vector<std::string>();
+	}
+	| assembly_lines TOKEN_ASSEMBLY_CODE TOKEN_SEMICOLON {
+		$$->push_back(*$2);
+		delete $2;
+	}
+	;
+
+echo_expr
+	: TOKEN_ECHO TOKEN_STRING {
+		$$ = new ASTNodeEcho(*$2);
+		delete $2;
+	}
+	;
+
+while_loop_expr
+	: TOKEN_WHILE TOKEN_LPAREN expr[cond] TOKEN_RPAREN TOKEN_LBRACE stmts[body] TOKEN_RBRACE {
+		$$ = new ASTNodeWhileLoop($cond, $body);
+	}
+	;
+
+break_expr
+	: TOKEN_BREAK { $$ = new ASTNodeBreak(1); }
+	| TOKEN_BREAK TOKEN_NUMBER {
+		$$ = new ASTNodeBreak(std::stoi(*$2)); 
+		delete $2;
+	}
 	;

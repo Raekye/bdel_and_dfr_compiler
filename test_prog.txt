@@ -16,3 +16,26 @@ def fib(var x) {
 		};
 	};
 }
+
+def test(var x) {
+	asm {
+		%load 1 r0;
+		%add r0 r0 r1;
+		%mov r1 r13;
+	};
+}
+
+def test2() {
+	echo "hello world";
+}
+
+def test3(var x) {
+	while (x > 0) {
+		x = x - 1;
+		if (x == 3) {
+			break;
+		} else {
+			0;
+		};
+	};
+}

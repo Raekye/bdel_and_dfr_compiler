@@ -33,3 +33,6 @@ $(BIN_DIR):
 
 clean:
 	rm -f $(LEXER_SOURCE) $(SRC_DIR)/lexer.h $(PARSER_SOURCE) $(SRC_DIR)/parser.h
+
+clean_all: clean
+	rm -rf $(BIN_DIR)

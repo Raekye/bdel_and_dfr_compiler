@@ -48,6 +48,23 @@ ASTNodeIfElse::ASTNodeIfElse(ASTNode* cond, ASTNode* if_true, ASTNode* if_false)
 	this->if_false = if_false;
 }
 
+ASTNodeAssembly::ASTNodeAssembly(std::vector<std::string>* lines) {
+	this->lines = lines;
+}
+
+ASTNodeEcho::ASTNodeEcho(std::string str) {
+	this->str = str;
+}
+
+ASTNodeWhileLoop::ASTNodeWhileLoop(ASTNode* cond, ASTNodeBlock* body) {
+	this->cond = cond;
+	this->body = body;
+}
+
+ASTNodeBreak::ASTNodeBreak(int32_t times) {
+	this->times = times;
+}
+
 ASTNode::~ASTNode() {
 	return;
 }
@@ -105,6 +122,23 @@ ASTNodeIfElse::~ASTNodeIfElse() {
 	delete this->if_false;
 }
 
+ASTNodeAssembly::~ASTNodeAssembly() {
+	delete this->lines;
+}
+
+ASTNodeEcho::~ASTNodeEcho() {
+	return;
+}
+
+ASTNodeWhileLoop::~ASTNodeWhileLoop() {
+	delete this->cond;
+	delete this->body;
+}
+
+ASTNodeBreak::~ASTNodeBreak() {
+	return;
+}
+
 void ASTNodeIdentifier::accept(IASTNodeVisitor* visitor) {
 	visitor->visit(this);
 }
@@ -142,6 +176,22 @@ void ASTNodeFunction::accept(IASTNodeVisitor* visitor) {
 }
 
 void ASTNodeFunctionCall::accept(IASTNodeVisitor* visitor) {
+	visitor->visit(this);
+}
+
+void ASTNodeAssembly::accept(IASTNodeVisitor* visitor) {
+	visitor->visit(this);
+}
+
+void ASTNodeEcho::accept(IASTNodeVisitor* visitor) {
+	visitor->visit(this);
+}
+
+void ASTNodeWhileLoop::accept(IASTNodeVisitor* visitor) {
+	visitor->visit(this);
+}
+
+void ASTNodeBreak::accept(IASTNodeVisitor* visitor) {
 	visitor->visit(this);
 }
 
