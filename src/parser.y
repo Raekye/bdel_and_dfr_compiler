@@ -60,7 +60,7 @@ typedef void* yyscan_t;
 %token TOKEN_SEMICOLON
 %token <str> TOKEN_NUMBER TOKEN_IDENTIFIER TOKEN_STRING TOKEN_ASSEMBLY_CODE
 
-%type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr top_level_expr echo_expr while_loop_expr assembly_expr break_expr
+%type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr top_level_expr echo_expr while_loop_expr assembly_expr break_expr expr_or_block block
 %type <block> stmts function_list
 %type <identifier> identifier
 %type <function_prototype> function_prototype_expr
@@ -86,16 +86,22 @@ function_list
 	;
 
 stmts
-	: expr TOKEN_SEMICOLON {
-		$$ = new ASTNodeBlock();
-		$$->push($1);
-	}
-	| stmts expr TOKEN_SEMICOLON { $$->push($2); }
+	: /* epsilon */ { $$ = new ASTNodeBlock(); }
+	| stmts expr_or_block { $$->push($2); }
 	;
 
 top_level_expr
 	: function_expr { $$ = $1; }
 	| function_prototype_expr TOKEN_SEMICOLON { $$ = $1; }
+	;
+
+expr_or_block
+	: expr TOKEN_SEMICOLON { $$ = $1; }
+	| block { $$ = $1; }
+
+block
+	: if_else_expr { $$ = $1; }
+	| while_loop_expr { $$ = $1; }
 	;
 
 expr
@@ -104,11 +110,9 @@ expr
 	| identifier { $$ = $1; }
 	| declaration_expr { $$ = $1; }
 	| assignment_expr { $$ = $1; }
-	| if_else_expr { $$ = $1; }
 	| function_call_expr { $$ = $1; }
 	| binary_operator_expr { $$ = $1; }
 	| echo_expr { $$ = $1; }
-	| while_loop_expr { $$ = $1; }
 	| assembly_expr { $$ = $1; }
 	| break_expr { $$ = $1; }
 	| declaration_expr TOKEN_ASSIGN expr {
@@ -147,6 +151,12 @@ declaration_expr
 if_else_expr
 	: TOKEN_IF TOKEN_LPAREN expr[cond] TOKEN_RPAREN TOKEN_LBRACE stmts[if_true] TOKEN_RBRACE TOKEN_ELSE TOKEN_LBRACE stmts[if_false] TOKEN_RBRACE {
 		$$ = new ASTNodeIfElse($cond, $if_true, $if_false);
+	}
+	| TOKEN_IF TOKEN_LPAREN expr[cond] TOKEN_RPAREN TOKEN_LBRACE stmts[if_true] TOKEN_RBRACE {
+		$$ = new ASTNodeIfElse($cond, $if_true, NULL);
+	}
+	| TOKEN_IF TOKEN_LPAREN expr[cond] TOKEN_RPAREN TOKEN_LBRACE stmts[if_true] TOKEN_RBRACE TOKEN_ELSE if_else_expr[else_if] {
+		$$ = new ASTNodeIfElse($cond, $if_true, $else_if);
 	}
 	;
 

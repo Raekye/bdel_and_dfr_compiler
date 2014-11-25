@@ -38,7 +38,7 @@ NUMBER [0-9]+
 WS [ \r\n\t]+
 
 STRING \"[a-z0-9 ]+\"
-ASSEMBLY_CODE %[a-z0-9_: ]+
+ASSEMBLY_CODE %[a-z0-9_: "]+
 
 %%
 

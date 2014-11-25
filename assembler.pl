@@ -136,6 +136,8 @@ sub process_instruction {
 		print_binary_instruction(binary_opcode_from_string($1), $2, $3, $4);
 	} elsif ($instr =~ /(mov) r(\d+) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1), $2, $3);
+	} elsif ($instr =~ /(die)/) {
+		print_binary_instruction(binary_opcode_from_string($1));
 	} else {
 		die "Unknown instruction \"$instr\"";
 	}
@@ -168,6 +170,7 @@ sub binary_opcode_from_string {
 		'inc' => 23,
 		'dec' => 24,
 		'mov' => 25,
+		'die' => -1,
 	);
 	return $map{$_[0]};
 }

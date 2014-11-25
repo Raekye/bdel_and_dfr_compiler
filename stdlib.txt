@@ -1,0 +1,109 @@
+def error(var code) {
+	asm {
+		%load 1 r0;
+		%output r0;
+		%die;
+	};
+}
+
+def heap_get(var address) {
+	asm {
+		%load 1 r0;
+		%unheap r0 r13;
+	};
+}
+
+def heap_set(var address, var value) {
+	asm {
+		%load 1 r0;
+		%load 2 r1;
+		%heap r1 r0;
+	};
+	value;
+}
+
+def malloc(var n) {
+	var i = 0;
+	var ret = 0 - 1;
+	while (i < 1024) {
+		var x = heap_get(i);
+		if (x == 0) {
+			i = i + 2;
+			var j = 0;
+			var ok = 1;
+			while (j < n) {
+				if (heap_get(i + j) == 0) {
+					0;
+				} else {
+					ok = 0;
+					break;
+				}
+				j = j + 1;
+			}
+			if (ok == 1) {
+				ret = i;
+				break;
+			} else {
+				i = i + j;
+			}
+		} else {
+			i = i + 1 + heap_get(i + 1);
+		}
+	}
+	if (i > 1023) {
+		error(1);
+	}
+	ret;
+}
+
+def free(var address) {
+	var n = heap_get(address - 1);
+	var i = address - 2;
+	while (i < address + n) {
+		heap_set(i, 0);
+	}
+}
+
+def io_draw(var charcode, var x, var y) {
+	asm {
+		%load 1 r0;
+		%load 2 r1;
+		%load 3 r2;
+		%draw r0 r1 r2;
+	};
+}
+
+def io_putchar(var ch) {
+	0;
+}
+
+def io_readchar() {
+	0;
+}
+
+def io_puthex(var x) {
+	0;
+}
+
+def io_readhex() {
+	0;
+}
+
+def io_endl() {
+	0;
+}
+
+def io_clear() {
+	var i = 0;
+	while (i < 64) {
+		var j = 0;
+		while (j < 64) {
+			asm {
+				%load 2 r0;
+				%load 1 r1;
+				%literal " " r2;
+				%draw r2 r0 r1;
+			};
+		}
+	}
+}

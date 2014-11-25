@@ -85,6 +85,7 @@ ASTNode* CodeGen::parse(std::istream* in) {
 
 void CodeGen::gen_program(ASTNode* root) {
 	std::cout << "jump :_after_" << std::endl;
+	std::cout << std::endl;
 	root->accept(this);
 	this->verify();
 	std::cout << "_after_:" << std::endl;
@@ -270,6 +271,7 @@ void CodeGen::visit(ASTNodeFunction* node) {
 	}
 
 	this->clear();
+	std::cout << std::endl;
 }
 
 void CodeGen::visit(ASTNodeFunctionCall* node) {
@@ -310,14 +312,18 @@ void CodeGen::visit(ASTNodeIfElse* node) {
 	std::cout << "jump :_" << l2 << "_branch_" << std::endl;
 	std::cout << "_" << l1 << "_branch_:" << std::endl;
 	node->if_true->accept(this);
-	//code_gen_mov_registers(this->current_register, reg_c);
+	code_gen_mov_registers(this->current_register, reg_c);
 	std::cout << "jump :_" << l3 << "_merge_" << std::endl;
 	std::cout << "_" << l2 << "_branch_:" << std::endl;
-	node->if_false->accept(this);
-	//code_gen_mov_registers(this->current_register, reg_c);
+	if (node->if_false == NULL) {
+		std::cout << "literal 0 r" << reg_c << std::endl;
+	} else {
+		node->if_false->accept(this);
+		code_gen_mov_registers(this->current_register, reg_c);
+	}
 	std::cout << "jump :_" << l3 << "_merge_" << std::endl;
 	std::cout << "_" << l3 << "_merge_:" << std::endl;
-	//this->current_register = reg_c;
+	this->current_register = reg_c;
 	this->nodes_visited++;
 }
 
@@ -333,7 +339,9 @@ void CodeGen::visit(ASTNodeAssembly* node) {
 void CodeGen::visit(ASTNodeEcho* node) {
 	for (int32_t i = 1; i < node->str.length() - 1; i++) {
 		std::cout << "literal " << CodeGen::charcode_from_char.at(node->str.substr(i, 1)) << " r" << this->register_result << std::endl;
-		// call library function print
+		ASTNodeLiteral x(CodeGen::charcode_from_char.at(node->str.substr(i, 1)));
+		ASTNodeFunctionCall fn_call("io_putchar", new std::vector<ASTNode*>(1, &x));
+		fn_call.accept(this);
 	}
 	this->nodes_visited++;
 }
