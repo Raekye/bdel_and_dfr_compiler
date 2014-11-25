@@ -16,19 +16,17 @@ public:
 	std::map<std::string, int32_t> globals;
 	std::deque<std::map<std::string, int32_t>> locals;
 	std::map<std::string, CodeGenFunction*> functions;
-	std::map<std::string, int32_t> locals_in_registers;
+	std::map<std::string, int32_t> variables_in_registers;
 	int32_t current_register;
 	std::string main_label;
 	int32_t nodes_visited;
-	bool will_store;
+	bool will_read;
 	int32_t stack_delta;
 	std::deque<std::string> loops;
-	bool in_top_level;
-	std::list<ASTNode*> top_level_initialization;
 
 	std::list<ASTNodeFunction*> liberate_me;
 
-	std::string* registers_with_locals;
+	std::string* registers_with_variables;
 	int32_t* registers_last_used;
 
 	int32_t num_registers_useable;
@@ -51,6 +49,9 @@ public:
 	int32_t* find_global(std::string);
 	void put_local(std::string, int32_t);
 	int32_t locals_size();
+	bool in_top_level();
+	void put_variable_in_register(std::string, int32_t);
+	void erase_variable_in_register(int32_t);
 
 	~CodeGen();
 

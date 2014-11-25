@@ -23,7 +23,10 @@ def heap_set(var address, var value) {
 }
 
 def malloc(var n) {
-	var i = 0;
+	var i = asm {
+		%literal 0 r0;
+		%unheap r0 r13;
+	};
 	var ret = 0 - 1;
 	while (i < 1024) {
 		var x = heap_get(i);
@@ -72,6 +75,9 @@ def io_draw(var charcode, var x, var y) {
 		%draw r0 r1 r2;
 	};
 }
+
+var io_x = 0;
+var io_y = 0;
 
 def io_putchar(var ch) {
 	0;

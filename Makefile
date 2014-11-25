@@ -11,7 +11,7 @@ EXECUTABLE = pleb
 
 LEXER_SOURCE = $(SRC_DIR)/lexer.cpp
 PARSER_SOURCE = $(SRC_DIR)/parser.cpp
-SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
+SOURCES = $(sort $(wildcard $(SRC_DIR)/*.cpp) $(LEXER_SOURCE) $(PARSER_SOURCE))
 OBJS = $(subst $(SRC_DIR),$(BIN_DIR),$(subst .cpp,.o,$(SOURCES)))
 
 all: $(BIN_DIR) $(BIN_DIR)/$(EXECUTABLE)
