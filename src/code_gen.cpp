@@ -19,7 +19,7 @@ int32_t CodeGen::initialize() {
 
 static void code_gen_mov_registers(int32_t, int32_t);
 
-CodeGen::CodeGen(int32_t num_registers_useable, int32_t register_tmp, int32_t register_result, int32_t register_return_address, int32_t register_return_value) : labels(0), will_store(false), stack_delta(0) {
+CodeGen::CodeGen(int32_t num_registers_useable, int32_t register_tmp, int32_t register_result, int32_t register_return_address, int32_t register_return_value) : labels(0), will_store(false), stack_delta(0), in_top_level(true), main_label("-") {
 	this->num_registers_useable = num_registers_useable;
 	this->register_tmp = register_tmp;
 	this->register_result = register_result;
@@ -58,11 +58,11 @@ void CodeGen::verify() {
 			throw std::runtime_error("Undefined function");
 		}
 	}
-	if (this->main_label == "") {
-		throw std::runtime_error("No main function");
-	}
 	if (this->stack_delta != 0) {
 		throw std::runtime_error("Generated code stack delta not 0");
+	}
+	if (!this->in_top_level) {
+		throw std::runtime_error("Verifying, not in top level");
 	}
 }
 
@@ -89,9 +89,14 @@ void CodeGen::gen_program(ASTNode* root) {
 	root->accept(this);
 	this->verify();
 	std::cout << "_after_:" << std::endl;
-	std::cout << "literal :_end_ r" << this->register_return_address << std::endl;
-	std::cout << "jump :" << this->main_label << std::endl;
-	std::cout << "_end_:" << std::endl;
+	for (std::list<ASTNode*>::iterator it = this->top_level_initialization.begin(); it != this->top_level_initialization.end(); it++) {
+		(*it)->accept(this);
+	}
+	if (this->main_label == "-") {
+		std::cout << "literal :_end_ r" << this->register_return_address << std::endl;
+		std::cout << "jump :" << this->main_label << std::endl;
+		std::cout << "_end_:" << std::endl;
+	}
 	std::cout << "eof" << std::endl;
 }
 
@@ -105,11 +110,63 @@ void CodeGen::stack_pointer(int32_t n) {
 void CodeGen::commit() {
 	for (int32_t i = 0; i < this->num_registers_useable; i++) {
 		if (this->registers_with_locals[i] != "-") {
-			std::cout << "store r" << i << " " << (this->locals.size() - this->locals.at(registers_with_locals[i])) << std::endl;
+			int32_t* relative_pos = this->find_local(registers_with_locals[i]);
+			std::cout << "store r" << i << " " << (this->locals.size() - *relative_pos) << std::endl;
+			delete relative_pos;
 			this->locals_in_registers.erase(this->registers_with_locals[i]);
 			this->registers_with_locals[i] = "-";
 		}
 	}
+}
+
+void CodeGen::push_scope() {
+	this->locals.push_back(std::map<std::string, int32_t>());
+}
+
+void CodeGen::pop_scope(int32_t delta = 0) {
+	for (std::map<std::string, int32_t>::iterator it = this->locals.back().begin(); it != this->locals.back().end(); it++) {
+		std::map<std::string, int32_t>::iterator found = this->locals_in_registers.find(it->first);
+		if (found != this->locals_in_registers.end()) {
+			this->registers_with_locals[found->second] = "-";
+			this->locals_in_registers.erase(it->first);
+		}
+	}
+	this->stack_pointer(-(this->locals.back().size() - delta));
+	this->locals.pop_back();
+}
+
+int32_t* CodeGen::find_local(std::string key) {
+	for (std::deque<std::map<std::string, int32_t>>::reverse_iterator it = this->locals.rbegin(); it != this->locals.rend(); it++) {
+		std::map<std::string, int32_t>::iterator found = it->find(key);
+		if (found != it->end()) {
+			int32_t* x = new int32_t;
+			*x = found->second;
+			return x;
+		}
+	}
+	return NULL;
+}
+
+int32_t* CodeGen::find_global(std::string key) {
+	std::map<std::string, int32_t>::iterator found = this->globals.find(key);
+	if (found == this->globals.end()) {
+		return NULL;
+	}
+	int32_t* x = new int32_t;
+	*x = found->second;
+	return x;
+}
+
+void CodeGen::put_local(std::string key, int32_t x) {
+	this->locals.back()[key] = x;
+}
+
+int32_t CodeGen::locals_size() {
+	int32_t size = 0;
+	for (std::deque<std::map<std::string, int32_t>>::reverse_iterator it = this->locals.rbegin(); it != this->locals.rend(); it++) {
+		size += it->size();
+	}
+	return size;
 }
 
 int32_t CodeGen::next_register() {
@@ -127,16 +184,20 @@ int32_t CodeGen::next_register() {
 			min_index = i;
 		}
 	}
-	std::cout << "store r" << min_index << " " << (this->locals.size() - this->locals.at(registers_with_locals[min_index])) << std::endl;
+	int32_t* relative_pos = this->find_local(registers_with_locals[min_index]);
+	std::cout << "store r" << min_index << " " << (this->locals_size() - *relative_pos) << std::endl;
+	delete relative_pos;
 	registers_with_locals[min_index] = "-";
 	return min_index;
 }
 
 void CodeGen::visit(ASTNodeIdentifier* node) {
-	std::map<std::string, int32_t>::iterator declared = this->locals.find(node->name);
-	if (declared == this->locals.end()) {
+	int32_t* relative_pos = this->find_local(node->name);
+	if (relative_pos == NULL) {
+		delete relative_pos;
 		throw std::runtime_error("Undeclared identifier");
 	}
+	delete relative_pos;
 	std::map<std::string, int32_t>::iterator registered = this->locals_in_registers.find(node->name);
 	if (registered != this->locals_in_registers.end()) {
 		this->current_register = registered->second;
@@ -144,8 +205,9 @@ void CodeGen::visit(ASTNodeIdentifier* node) {
 	}
 	int32_t index = this->next_register();
 	if (!this->will_store) {
-		std::cout << "load " << (this->locals.size() - declared->second) << " r" << index << std::endl;
+		std::cout << "load " << (this->locals_size() - *relative_pos) << " r" << index << std::endl;
 	}
+	delete relative_pos;
 	this->locals_in_registers[node->name] = index;
 	this->registers_with_locals[index] = node->name;
 	this->registers_last_used[index] = this->nodes_visited;
@@ -161,12 +223,21 @@ void CodeGen::visit(ASTNodeLiteral* node) {
 }
 
 void CodeGen::visit(ASTNodeDeclaration* node) {
-	std::map<std::string, int32_t>::iterator declared = this->locals.find(node->var_name);
-	if (declared != this->locals.end()) {
+	std::map<std::string, int32_t>::iterator found_in_top_scope = this->locals.back().find(node->var_name);
+	if (found_in_top_scope != this->locals.back().end()) {
 		throw std::runtime_error("Identifier already declared");
 	}
-	int32_t num_locals = this->locals.size();
-	this->locals[node->var_name] = num_locals;
+
+	std::map<std::string, int32_t>::iterator it = this->locals_in_registers.find(node->var_name);
+	if (it != this->locals_in_registers.end()) {
+		int32_t* relative_pos = this->find_local(node->var_name);
+		std::cout << "store r" << it->second << " " << (this->locals.size() - *relative_pos) << std::endl;
+		delete relative_pos;
+		this->locals_in_registers.erase(this->registers_with_locals[it->second]);
+		this->registers_with_locals[it->second] = "-";
+	}
+
+	this->put_local(node->var_name, this->locals_size());
 	this->stack_pointer(1);
 	this->nodes_visited++;
 }
@@ -179,10 +250,12 @@ void CodeGen::visit(ASTNodeBlock* node) {
 }
 
 void CodeGen::visit(ASTNodeAssignment* node) {
-	std::map<std::string, int32_t>::iterator declared = this->locals.find(node->lhs->name);
-	if (declared == this->locals.end()) {
+	int32_t* relative_pos = this->find_local(node->lhs->name);
+	if (relative_pos == NULL) {
+		delete relative_pos;
 		throw std::runtime_error("Undeclared identifier");
 	}
+	delete relative_pos;
 	node->rhs->accept(this);
 	int32_t reg_b = this->current_register;
 	this->will_store = true;
@@ -229,6 +302,9 @@ void CodeGen::visit(ASTNodeBinaryOperator* node) {
 }
 
 void CodeGen::visit(ASTNodeFunctionPrototype* node) {
+	if (!this->in_top_level) {
+		throw std::runtime_error("Function declared in not top level");
+	}
 	std::map<std::string, CodeGenFunction*>::iterator it = this->functions.find(node->function_name);
 	if (it != this->functions.end()) {
 		throw std::runtime_error("Function already declared");
@@ -249,20 +325,28 @@ void CodeGen::visit(ASTNodeFunction* node) {
 		node->prototype->accept(this);
 		it = this->functions.find(node->prototype->function_name);
 	}
+	if (!this->in_top_level) {
+		throw std::runtime_error("Function defined in not top level");
+	}
 	int32_t label = std::get<1>(*(it->second));
 	delete it->second;
 	it->second = new CodeGenFunction(node, label);
 	std::cout << "_" << label << "__" << node->prototype->function_name << ":" <<  std::endl;
 
+	this->push_scope();
+
 	int32_t i = 0;
 	for (std::vector<ASTNodeDeclaration*>::iterator it = node->prototype->args->begin(); it != node->prototype->args->end(); it++) {
-		this->locals[(*it)->var_name] = -i;
+		this->put_local((*it)->var_name, -i);
 		i++;
 	}
+	this->in_top_level = false;
 	node->body->accept(this);
-	this->stack_pointer(-(this->locals.size() - node->prototype->args->size()));
+	this->in_top_level = true;
+	this->pop_scope(node->prototype->args->size());
 	code_gen_mov_registers(this->current_register, this->register_return_value);
 	std::cout << "jump r" << this->register_return_address << std::endl;
+
 
 	if (node->prototype->function_name == "main") {
 		std::stringstream ss;
@@ -302,6 +386,7 @@ void CodeGen::visit(ASTNodeFunctionCall* node) {
 }
 
 void CodeGen::visit(ASTNodeIfElse* node) {
+	this->push_scope();
 	int32_t reg_c = this->register_result;
 	node->cond->accept(this);
 	std::cout << "branch r" << this->current_register << std::endl;
@@ -323,6 +408,7 @@ void CodeGen::visit(ASTNodeIfElse* node) {
 	}
 	std::cout << "jump :_" << l3 << "_merge_" << std::endl;
 	std::cout << "_" << l3 << "_merge_:" << std::endl;
+	this->pop_scope();
 	this->current_register = reg_c;
 	this->nodes_visited++;
 }
@@ -347,6 +433,7 @@ void CodeGen::visit(ASTNodeEcho* node) {
 }
 
 void CodeGen::visit(ASTNodeWhileLoop* node) {
+	this->push_scope();
 	int32_t l1 = this->labels++;
 	int32_t l2 = this->labels++;
 	int32_t l3 = this->labels++;
@@ -365,6 +452,7 @@ void CodeGen::visit(ASTNodeWhileLoop* node) {
 	std::cout << "jump :_" << l1 << "_while_" << std::endl;
 	std::cout << "_" << l3 << "_while_:" << std::endl;
 	this->loops.pop_back();
+	this->pop_scope();
 	this->nodes_visited++;
 }
 

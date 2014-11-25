@@ -61,7 +61,7 @@ typedef void* yyscan_t;
 %token <str> TOKEN_NUMBER TOKEN_IDENTIFIER TOKEN_STRING TOKEN_ASSEMBLY_CODE
 
 %type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr top_level_expr echo_expr while_loop_expr assembly_expr break_expr expr_or_block block
-%type <block> stmts function_list
+%type <block> stmts top_level_expr_list
 %type <identifier> identifier
 %type <function_prototype> function_prototype_expr
 %type <declaration> declaration_expr
@@ -74,15 +74,15 @@ typedef void* yyscan_t;
 %%
 
 program
-	: function_list { *root = $1; }
+	: top_level_expr_list { *root = $1; }
 	;
 
-function_list
+top_level_expr_list
 	: top_level_expr {
 		$$ = new ASTNodeBlock();
 		$$->push($1);
 	}
-	| function_list top_level_expr { $$->push($2); }
+	| top_level_expr_list top_level_expr { $$->push($2); }
 	;
 
 stmts
@@ -93,6 +93,7 @@ stmts
 top_level_expr
 	: function_expr { $$ = $1; }
 	| function_prototype_expr TOKEN_SEMICOLON { $$ = $1; }
+	| expr_or_block { $$ = $1; }
 	;
 
 expr_or_block

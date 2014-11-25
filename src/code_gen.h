@@ -13,7 +13,8 @@ typedef std::tuple<ASTNodeFunction*, int32_t> CodeGenFunction;
 class CodeGen : public IASTNodeVisitor {
 public:
 	int32_t labels;
-	std::map<std::string, int32_t> locals;
+	std::map<std::string, int32_t> globals;
+	std::deque<std::map<std::string, int32_t>> locals;
 	std::map<std::string, CodeGenFunction*> functions;
 	std::map<std::string, int32_t> locals_in_registers;
 	int32_t current_register;
@@ -22,6 +23,8 @@ public:
 	bool will_store;
 	int32_t stack_delta;
 	std::deque<std::string> loops;
+	bool in_top_level;
+	std::list<ASTNode*> top_level_initialization;
 
 	std::list<ASTNodeFunction*> liberate_me;
 
@@ -42,6 +45,12 @@ public:
 	void gen_program(ASTNode*);
 	void stack_pointer(int32_t);
 	void commit();
+	void push_scope();
+	void pop_scope(int32_t);
+	int32_t* find_local(std::string);
+	int32_t* find_global(std::string);
+	void put_local(std::string, int32_t);
+	int32_t locals_size();
 
 	~CodeGen();
 
