@@ -53,7 +53,7 @@ def malloc(var n) {
 			i = i + 1 + heap_get(i + 1);
 		}
 	}
-	if (i > 1023) {
+	if (i > 1024 - 1) {
 		error(1);
 	}
 	ret;
@@ -79,31 +79,11 @@ def io_draw(var charcode, var x, var y) {
 var io_x = 0;
 var io_y = 0;
 
-def io_putchar(var ch) {
-	0;
-}
-
-def io_readchar() {
-	0;
-}
-
-def io_puthex(var x) {
-	0;
-}
-
-def io_readhex() {
-	0;
-}
-
-def io_endl() {
-	0;
-}
-
 def io_clear() {
 	var i = 0;
-	while (i < 64) {
+	while (i < 53) {
 		var j = 0;
-		while (j < 64) {
+		while (j < 30) {
 			asm {
 				%load 2 r0;
 				%load 1 r1;
@@ -112,4 +92,72 @@ def io_clear() {
 			};
 		}
 	}
+}
+
+def io_normalize(var n) {
+	if (io_x > 53 - n) {
+		io_x = 0;
+		io_y = io_y + 1;
+	}
+	if (io_y > 30 - 1) {
+		io_clear();
+		io_y = 0;
+	}
+}
+
+def io_putchar(var ch) {
+	io_normalize(1);
+	var x = io_x;
+	var y = io_y;
+	asm {
+		%load 3 r0;
+		%load 2 r1;
+		%load 1 r2;
+		%draw r0 r1 r2;
+	};
+	io_x = io_x + 1;
+}
+
+def io_readchar() {
+	io_normalize(1);
+	var x = io_x;
+	var y = io_y;
+	var z = asm {
+		%load 2 r0;
+		%load 1 r1;
+		%keyboard r0 r1 r13;
+	};
+	io_x = io_x + 1;
+	z;
+}
+
+def io_puthex(var ch) {
+	io_normalize(4);
+	var x = io_x;
+	var y = io_y;
+	asm {
+		%load 3 r0;
+		%load 2 r1;
+		%load 1 r0;
+		%printhex r0 r1 r2;
+	};
+	io_x = io_x + 4;
+}
+
+def io_readhex() {
+	io_normalize(4);
+	var x = io_x;
+	var y = io_y;
+	var z = asm {
+		%load 2 r0;
+		%load 1 r1;
+		%keyhex r0 r1 r13;
+	};
+	io_x = io_x + 4;
+	z;
+}
+
+def io_endl() {
+	io_x = 53;
+	io_normalize(0);
 }

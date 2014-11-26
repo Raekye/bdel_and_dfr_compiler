@@ -23,6 +23,7 @@ public:
 	bool will_read;
 	int32_t stack_delta;
 	std::deque<std::string> loops;
+	int32_t function_call_args_offset;
 
 	std::list<ASTNodeFunction*> liberate_me;
 
@@ -41,10 +42,10 @@ public:
 	void verify();
 	ASTNode* parse(std::istream*);
 	void gen_program(ASTNode*);
-	void stack_pointer(int32_t);
+	void stack_pointer(int32_t, std::string);
 	void commit();
 	void push_scope();
-	void pop_scope(int32_t);
+	void pop_scope(std::string, int32_t = 0);
 	int32_t* find_local(std::string);
 	int32_t* find_global(std::string);
 	void put_local(std::string, int32_t);

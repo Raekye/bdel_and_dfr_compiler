@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Devel::StackTrace;
 
 exit main();
 
@@ -63,79 +64,77 @@ sub process_instruction {
 	if ($instr =~ /eof/) {
 		print_binary_instruction(0);
 	} elsif (@match = $instr =~ /(load) (\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($match[0]), $match[1], $match[2]);
+		print_binary_instruction(binary_opcode_from_string($match[0]), 4, $match[1], 2, $match[2]);
 	} elsif ($instr =~ /(store) r(\d+) (\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 4, $3);
 	} elsif ($instr =~ /(literal) (-?\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3);
+		print_binary_instruction(binary_opcode_from_string($1), 4, $2, 2, $3);
 	} elsif ($instr =~ /(literal) :([a-zA-Z_]\w*) r(\d+)/) {
 		if (exists($labels->{$2})) {
-			print_binary_instruction(binary_opcode_from_string($1), $labels->{$2}, $3);
+			print_binary_instruction(binary_opcode_from_string($1), 4, $labels->{$2}, 2, $3);
 		} else {
 			die "Unknown label \"$2\"";
 		}
 	} elsif ($instr =~ /(literal) "([a-z0-9 ])" r(\d+)/) {
 		if ($2 eq " ") {
-			print_binary_instruction(binary_opcode_from_string($1), 36, $3);
+			print_binary_instruction(binary_opcode_from_string($1), 4, 36, 2, $3);
 		} elsif (ord($2) - ord("a") < 0) {
-			print_binary_instruction(binary_opcode_from_string($1), $2, $3);
+			print_binary_instruction(binary_opcode_from_string($1), 4, $2, 2, $3);
 		} else {
-			print_binary_instruction(binary_opcode_from_string($1), ord($2) - ord("a") + 10, $3);
+			print_binary_instruction(binary_opcode_from_string($1), 4, ord($2) - ord('a') + 10, 2, $3);
 		}
 	} elsif ($instr =~ /(input) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2);
 	} elsif ($instr =~ /(output) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2);
 	} elsif ($instr =~ /(add) r(\d+) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3, $4);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(sub) r(\d+) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3, $4);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(mul) r(\d+) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3, $4);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(div) r(\d+) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3, $4);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(cmp) r(\d+) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3, $4);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(branch) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2);
 	} elsif ($instr =~ /(jump) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), 1, $2);
+		print_binary_instruction(binary_opcode_from_string($1), 2, 1, 2, $2);
 	} elsif ($instr =~ /(jump) :([a-zA-Z_]\w*)/) {
 		if (exists($labels->{$2})) {
-			print_binary_instruction(binary_opcode_from_string($1), 0, $labels->{$2});
+			print_binary_instruction(binary_opcode_from_string($1), 2, 0, 4, $labels->{$2});
 		} else {
 			die "Unknown label \"$2\"";
 		}
 	} elsif ($instr =~ /(stack) (-?\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2);
+		print_binary_instruction(binary_opcode_from_string($1), 4, $2);
 	} elsif ($instr =~ /(supermandive)/) {
 		print_binary_instruction(binary_opcode_from_string($1));
 	} elsif ($instr =~ /(getup)/) {
 		print_binary_instruction(binary_opcode_from_string($1));
-	} elsif ($instr =~ /(print) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2);
 	} elsif ($instr =~ /(draw) r(\d+) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3, $4);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(keyboard) r(\d+) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3, $4);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(heap) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3);
 	} elsif ($instr =~ /(unheap) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3);
 	} elsif ($instr =~ /(return) r(\d+) (\d+)/) {
-		print_binary_instruction(binary_opcode_from_string("store"), $2, $3 + 15);
-	} elsif ($instr =~ /(draw) r(\d+) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3, $4);
+		print_binary_instruction(binary_opcode_from_string("store"), 2, $2, 4, $3 + 15);
 	} elsif ($instr =~ /(printhex) r(\d+) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3, $4);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(inc) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2);
-	} elsif ($instr =~ /(dec) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2);
-	} elsif ($instr =~ /(keyint) r(\d+) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3, $4);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2);
+	} elsif ($instr =~ /^(dec) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2);
+	} elsif ($instr =~ /(keyhex) r(\d+) r(\d+) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(mov) r(\d+) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1), $2, $3);
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3);
+	} elsif ($instr =~ /(printdec) r(\d+) r(\d+) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(die)/) {
 		print_binary_instruction(binary_opcode_from_string($1));
 	} else {
@@ -166,23 +165,32 @@ sub binary_opcode_from_string {
 		'keyboard' => 18,
 		'heap' => 19,
 		'unheap' => 20,
-		'keyint' => 21,
+		'keyhex' => 21,
 		'inc' => 23,
 		'dec' => 24,
 		'mov' => 25,
+		'printdec' => 16,
 		'die' => -1,
 	);
 	return $map{$_[0]};
 }
 
 sub print_binary_instruction {
-	my $i = 0;
+	my $i = 2;
+	print substr(sprintf('%02x', $_[0]), -2), ' ';
+	shift(@_);
+	my $width = 0;
 	foreach (@_) {
-		print substr(sprintf('%04x ', $_), -5);
-		$i++;
+		if ($width == 0) {
+			$width = $_;
+		} else {
+			print substr(sprintf('%0' . $width . 'x', $_), -$width), ' ';
+			$i += $width;
+			$width = 0;
+		}
 	}
-	foreach ($i..4 - 1) {
-		print sprintf('%04x ', 0);
+	foreach ($i..8 - 1) {
+		print '0'
 	}
 	print("\n");
 }

@@ -8,6 +8,7 @@ Hmmm
 
 # Interesting
 - when out of registers, compiler chooses register to kick out by least recently used
+- if branches, while loop, have own scope
 
 # Usage
 - compile compiler: `make`, output is `bin/pleb`
@@ -28,6 +29,7 @@ Hmmm
 - need to track for when generating initialization
 - inline
 - helper for modifying variables in registers/registers with variables
+- break stack
 
 ## More hmmmm
 - [Sufficient conditions for Turing-completeness][1]
