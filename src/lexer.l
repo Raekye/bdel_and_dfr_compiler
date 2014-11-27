@@ -29,13 +29,17 @@ DIVIDE "/"
 ASSIGN "="
 COMMA ","
 EQ "=="
-LT "<"
+LT "\<"
 GT ">"
+LOGICAL_AND "\&\&"
+LOGICAL_OR "\|\|"
+LOGICAL_NOT "!"
 
 IDENTIFIER [a-z_][a-zA-Z0-9_]*
 
 NUMBER [0-9]+
 WS [ \r\n\t]+
+CHAR '[a-z0-9 ]'
 
 STRING \"[a-z0-9 ]+\"
 ASSEMBLY_CODE %[a-z0-9_: "]+
@@ -56,6 +60,9 @@ ASSEMBLY_CODE %[a-z0-9_: "]+
 {EQ} { return TOKEN_EQ; }
 {LT} { return TOKEN_LT; }
 {GT} { return TOKEN_GT; }
+{LOGICAL_AND} { return TOKEN_LOGICAL_AND; }
+{LOGICAL_OR} { return TOKEN_LOGICAL_OR; }
+{LOGICAL_NOT} { return TOKEN_LOGICAL_NOT; }
 "if" { return TOKEN_IF; }
 else { return TOKEN_ELSE; }
 var { return TOKEN_VAR; }
@@ -70,6 +77,7 @@ break { return TOKEN_BREAK; }
 {IDENTIFIER} { SAVE_TOKEN; return TOKEN_IDENTIFIER; }
 {STRING} { SAVE_TOKEN; return TOKEN_STRING; }
 {ASSEMBLY_CODE} { SAVE_TOKEN; return TOKEN_ASSEMBLY_CODE; }
+{CHAR} { SAVE_TOKEN; return TOKEN_CHAR; }
 
 {WS} { /* pass */ }
 

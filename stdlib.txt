@@ -28,24 +28,26 @@ def malloc(var n) {
 		%unheap r0 r13;
 	};
 	var ret = 0 - 1;
-	while (i < 1024) {
+	var break_i = 0;
+	while (!break_i && i < 4096) {
 		var x = heap_get(i);
 		if (x == 0) {
 			i = i + 2;
 			var j = 0;
 			var ok = 1;
-			while (j < n) {
+			var break_j = 0;
+			while (!break_j && j < n) {
 				if (heap_get(i + j) == 0) {
 					0;
+					j = j + 1;
 				} else {
 					ok = 0;
-					break;
+					break_j = 1;
 				}
-				j = j + 1;
 			}
 			if (ok == 1) {
 				ret = i;
-				break;
+				break_i = 1;
 			} else {
 				i = i + j;
 			}
@@ -53,8 +55,8 @@ def malloc(var n) {
 			i = i + 1 + heap_get(i + 1);
 		}
 	}
-	if (i > 1024 - 1) {
-		error(1);
+	if (i > 4096 - 1) {
+		error(2);
 	}
 	ret;
 }
@@ -81,9 +83,9 @@ var io_y = 0;
 
 def io_clear() {
 	var i = 0;
-	while (i < 53) {
+	while (i < 52) {
 		var j = 0;
-		while (j < 30) {
+		while (j < 28) {
 			asm {
 				%load 2 r0;
 				%load 1 r1;
@@ -95,12 +97,13 @@ def io_clear() {
 }
 
 def io_normalize(var n) {
-	if (io_x > 53 - n) {
+	if (io_x > 52 - n) {
 		io_x = 0;
 		io_y = io_y + 1;
 	}
-	if (io_y > 30 - 1) {
+	if (io_y > 28 - 1) {
 		io_clear();
+		io_x = 0;
 		io_y = 0;
 	}
 }
@@ -123,8 +126,8 @@ def io_readchar() {
 	var x = io_x;
 	var y = io_y;
 	var z = asm {
-		%load 2 r0;
-		%load 1 r1;
+		%load 3 r0;
+		%load 2 r1;
 		%keyboard r0 r1 r13;
 	};
 	io_x = io_x + 1;
@@ -149,8 +152,8 @@ def io_readhex() {
 	var x = io_x;
 	var y = io_y;
 	var z = asm {
-		%load 2 r0;
-		%load 1 r1;
+		%load 3 r0;
+		%load 2 r1;
 		%keyhex r0 r1 r13;
 	};
 	io_x = io_x + 4;
@@ -158,6 +161,6 @@ def io_readhex() {
 }
 
 def io_endl() {
-	io_x = 53;
+	io_x = 255;
 	io_normalize(0);
 }

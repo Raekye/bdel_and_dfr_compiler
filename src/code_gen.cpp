@@ -25,7 +25,7 @@ void code_gen_mov_registers(int32_t a, int32_t b, std::string comment) {
 	}
 }
 
-CodeGen::CodeGen(int32_t num_registers_useable, int32_t register_tmp, int32_t register_result, int32_t register_return_address, int32_t register_return_value) : labels(0), will_read(true), stack_delta(0), main_label("-"), function_call_args_offset(0) {
+CodeGen::CodeGen(int32_t num_registers_useable, int32_t register_tmp, int32_t register_result, int32_t register_return_address, int32_t register_return_value) : labels(0), will_read(true), stack_delta(0), main_label("-"), stack_random_offset(0), in_global_init(false), expected_stack_delta(0) {
 	this->num_registers_useable = num_registers_useable;
 	this->register_tmp = register_tmp;
 	this->register_result = register_result;
@@ -33,6 +33,7 @@ CodeGen::CodeGen(int32_t num_registers_useable, int32_t register_tmp, int32_t re
 	this->register_return_value = register_return_value;
 	this->registers_with_variables = new std::string[this->num_registers_useable];
 	this->registers_last_used = new int32_t[this->num_registers_useable];
+	this->registers_dirty = new bool[this->num_registers_useable];
 	this->clear();
 }
 
@@ -54,6 +55,7 @@ void CodeGen::clear() {
 	for (int32_t i = 0; i < this->num_registers_useable; i++) {
 		this->registers_with_variables[i] = "-";
 		this->registers_last_used[i] = 0;
+		this->registers_dirty[i] = false;
 	}
 	this->nodes_visited = 0;
 }
@@ -64,8 +66,8 @@ void CodeGen::verify() {
 			throw std::runtime_error("Undefined function");
 		}
 	}
-	if (this->stack_delta != 0) {
-		throw std::runtime_error("Generated code stack delta not 0");
+	if (this->stack_delta != expected_stack_delta) {
+		throw std::runtime_error("Generated code stack delta not expected");
 	}
 	if (!this->in_top_level()) {
 		throw std::runtime_error("Verifying, not in top level");
@@ -95,6 +97,11 @@ void CodeGen::gen_program(ASTNode* root) {
 	root->accept(this);
 	this->verify();
 	std::cout << "_after_:" << std::endl;
+	this->in_global_init = true;
+	for (std::list<ASTNode*>::iterator it = this->global_initializers.begin(); it != this->global_initializers.end(); it++) {
+		(*it)->accept(this);
+	}
+	this->commit();
 	std::cout << "literal " << this->globals.size() + 1 << " r" << this->register_tmp << std::endl;
 	std::cout << "literal 0 r" << this->register_result << std::endl;
 	std::cout << "heap r" << this->register_tmp << " r" << this->register_result << std::endl;
@@ -113,16 +120,20 @@ void CodeGen::stack_pointer(int32_t n, std::string comment) {
 	}
 }
 
-void CodeGen::commit() {
+void CodeGen::commit(bool include_locals) {
 	for (int32_t i = 0; i < this->num_registers_useable; i++) {
 		if (this->registers_with_variables[i] != "-") {
-			int32_t* relative_pos = this->find_local(registers_with_variables[i]);
-			if (relative_pos == NULL) {
-				std::cout << "literal " << this->globals.at(this->registers_with_variables[i]) << " r" << this->register_result << " # " << "commit global " << this->registers_with_variables[i] << std::endl;
-				std::cout << "heap r" << i << " r" << this->register_result << std::endl;
-			} else {
-				std::cout << "store r" << i << " " << (this->locals_size() - *relative_pos) << " # " << "commit local " << this->registers_with_variables[i] << std::endl;
-				delete relative_pos;
+			if (this->registers_dirty) {
+				int32_t* relative_pos = this->find_local(registers_with_variables[i]);
+				if (relative_pos == NULL) {
+					std::cout << "literal " << this->globals.at(this->registers_with_variables[i]) << " r" << this->register_result <<std::endl;
+					std::cout << "heap r" << i << " r" << this->register_result << " # " << "commit global " << this->registers_with_variables[i] << std::endl;
+				} else {
+					if (include_locals) {
+						std::cout << "store r" << i << " " << (this->locals_size() - *relative_pos) << " # " << "commit local " << this->registers_with_variables[i] << std::endl;
+					}
+					delete relative_pos;
+				}
 			}
 			this->erase_variable_in_register(i);
 		}
@@ -172,7 +183,7 @@ void CodeGen::put_local(std::string key, int32_t x) {
 }
 
 int32_t CodeGen::locals_size() {
-	int32_t size = this->function_call_args_offset;
+	int32_t size = this->stack_random_offset;
 	for (std::deque<std::map<std::string, int32_t>>::reverse_iterator it = this->locals.rbegin(); it != this->locals.rend(); it++) {
 		size += it->size();
 	}
@@ -194,13 +205,15 @@ int32_t CodeGen::next_register() {
 			min_index = i;
 		}
 	}
-	int32_t* relative_pos = this->find_local(this->registers_with_variables[min_index]);
-	if (relative_pos == NULL) {
-		std::cout << "literal " << this->globals.at(this->registers_with_variables[min_index]) << " r" << this->register_result << std::endl;
-		std::cout << "heap r" << min_index << " r" << this->register_result << " # " << "ding global " << this->registers_with_variables[min_index] << std::endl;
-	} else {
-		std::cout << "store r" << min_index << " " << (this->locals_size() - *relative_pos) << " # " << "ding local " << this->registers_with_variables[min_index] << std::endl;
-		delete relative_pos;
+	if (this->registers_dirty[min_index]) {
+		int32_t* relative_pos = this->find_local(this->registers_with_variables[min_index]);
+		if (relative_pos == NULL) {
+			std::cout << "literal " << this->globals.at(this->registers_with_variables[min_index]) << " r" << this->register_result << std::endl;
+			std::cout << "heap r" << min_index << " r" << this->register_result << " # " << "ding global " << this->registers_with_variables[min_index] << std::endl;
+		} else {
+			std::cout << "store r" << min_index << " " << (this->locals_size() - *relative_pos) << " # " << "ding local " << this->registers_with_variables[min_index] << std::endl;
+			delete relative_pos;
+		}
 	}
 	this->erase_variable_in_register(min_index);
 	return min_index;
@@ -218,6 +231,7 @@ void CodeGen::put_variable_in_register(std::string key, int32_t reg) {
 void CodeGen::erase_variable_in_register(int32_t reg) {
 	this->variables_in_registers.erase(this->registers_with_variables[reg]);
 	this->registers_with_variables[reg] = "-";
+	this->registers_dirty[reg] = false;
 }
 
 #pragma mark - Assembly code generation
@@ -252,6 +266,10 @@ void CodeGen::visit(ASTNodeIdentifier* node) {
 }
 
 void CodeGen::visit(ASTNodeLiteral* node) {
+	if (this->in_top_level() && !this->in_global_init) {
+		this->global_initializers.push_back(node);
+		return;
+	}
 	int32_t index = this->register_result;
 	std::cout << "literal " << node->val << " r" << index << std::endl;
 	this->current_register = index;
@@ -273,13 +291,15 @@ void CodeGen::visit(ASTNodeDeclaration* node) {
 
 		std::map<std::string, int32_t>::iterator it = this->variables_in_registers.find(node->var_name);
 		if (it != this->variables_in_registers.end()) {
-			int32_t* relative_pos = this->find_local(node->var_name);
-			if (relative_pos == NULL) {
-				std::cout << "literal " << this->globals.at(this->registers_with_variables[it->second]) << " r" << this->register_result << std::endl;
-				std::cout << "heap r" << it->second << " r" << this->register_result << " # " << "shadow global " << node->var_name << std::endl;
-			} else {
-				std::cout << "store r" << it->second << " " << (this->locals_size() - *relative_pos) << " # " << "shadow local " << node->var_name << std::endl;
-				delete relative_pos;
+			if (this->registers_dirty) {
+				int32_t* relative_pos = this->find_local(node->var_name);
+				if (relative_pos == NULL) {
+					std::cout << "literal " << this->globals.at(this->registers_with_variables[it->second]) << " r" << this->register_result << std::endl;
+					std::cout << "heap r" << it->second << " r" << this->register_result << " # " << "shadow global " << node->var_name << std::endl;
+				} else {
+					std::cout << "store r" << it->second << " " << (this->locals_size() - *relative_pos) << " # " << "shadow local " << node->var_name << std::endl;
+					delete relative_pos;
+				}
 			}
 			this->erase_variable_in_register(it->second);
 		}
@@ -298,6 +318,10 @@ void CodeGen::visit(ASTNodeBlock* node) {
 }
 
 void CodeGen::visit(ASTNodeAssignment* node) {
+	if (this->in_top_level() && !this->in_global_init) {
+		this->global_initializers.push_back(node);
+		return;
+	}
 	int32_t* relative_pos = this->find_local(node->lhs->name);
 	if (relative_pos == NULL) {
 		std::map<std::string, int32_t>::iterator it = this->globals.find(node->lhs->name);
@@ -308,19 +332,43 @@ void CodeGen::visit(ASTNodeAssignment* node) {
 	delete relative_pos;
 	node->rhs->accept(this);
 	int32_t reg_b = this->current_register;
-	this->will_read = false;
-	node->lhs->accept(this);
-	this->will_read = true;
-	code_gen_mov_registers(reg_b, this->current_register, "assign to " + node->lhs->name);
+	if (false && this->in_top_level()) {
+		std::cout << "literal " << this->globals.at(node->lhs->name) << " r" << this->register_tmp << std::endl;
+		std::cout << "heap r" << reg_b << " r" << this->register_tmp << std::endl;
+	} else {
+		this->will_read = false;
+		node->lhs->accept(this);
+		this->will_read = true;
+		this->registers_dirty[this->current_register] = true;
+		code_gen_mov_registers(reg_b, this->current_register, "assign to " + node->lhs->name);
+	}
 	this->nodes_visited++;
 }
 
 void CodeGen::visit(ASTNodeBinaryOperator* node) {
-	node->lhs->accept(this);
-	code_gen_mov_registers(this->current_register, this->register_tmp, "binary op lhs");
+	if (this->in_top_level() && !this->in_global_init) {
+		this->global_initializers.push_back(node);
+		return;
+	}
+	if (node->op == eLOGICAL_AND) {
+		ASTNodeIfElse f(new ASTNodePhony(node->lhs), new ASTNodePhony(node->rhs), new ASTNodeLiteral(0));
+		f.accept(this);
+		return;
+	} else if (node->op == eLOGICAL_OR) {
+		ASTNodeIfElse f(new ASTNodePhony(node->lhs), new ASTNodeLiteral(1), new ASTNodePhony(node->rhs));
+		f.accept(this);
+		return;
+	}
 	int32_t reg_a = this->register_tmp;
+	node->lhs->accept(this);
+	this->stack_pointer(1, "binary operation register tmp save");
+	this->stack_random_offset += 1;
+	std::cout << "store r" << this->current_register << " 1" << std::endl;
 	node->rhs->accept(this);
 	int32_t reg_b = this->current_register;
+	std::cout << "load 1 r" << reg_a << std::endl;
+	this->stack_random_offset -= 1;
+	this->stack_pointer(-1, "binary operation register tmp restore");
 	int32_t reg_c = this->register_result;
 	switch (node->op) {
 		case eADD:
@@ -336,18 +384,36 @@ void CodeGen::visit(ASTNodeBinaryOperator* node) {
 			std::cout << "div r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
 			break;
 		case eEQ:
-			std::cout << "cmp r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
+			std::cout << "eq r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
 			break;
 		case eLT:
-			std::cout << "cmp r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
-			std::cout << "inc r" << reg_c << std::endl;
+			std::cout << "lt r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
 			break;
 		case eGT:
-			std::cout << "cmp r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
-			std::cout << "dec r" << reg_c << std::endl;
+			std::cout << "gt r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
 			break;
+		case eLOGICAL_AND:
+		case eLOGICAL_OR:
+		case eLOGICAL_NOT:
+			throw std::runtime_error("Not binary operator");
 	}
 	this->current_register = reg_c;
+	this->nodes_visited++;
+}
+
+void CodeGen::visit(ASTNodeUnaryOperator* node) {
+	if (this->in_top_level() && !this->in_global_init) {
+		this->global_initializers.push_back(node);
+		return;
+	}
+	int32_t reg_a = this->register_result;
+	if (node->op == eLOGICAL_NOT) {
+		node->x->accept(this);
+		std::cout << "not r" << this->current_register << " r" << reg_a << std::endl;
+	} else {
+		throw std::runtime_error("Unknown unary operator");
+	}
+	this->current_register = reg_a;
 	this->nodes_visited++;
 }
 
@@ -393,6 +459,7 @@ void CodeGen::visit(ASTNodeFunction* node) {
 	node->body->accept(this);
 	code_gen_mov_registers(this->current_register, this->register_return_value, "return");
 	this->pop_scope("def " + node->prototype->function_name + "/pop", node->prototype->args->size());
+	this->commit();
 	std::cout << "jump r" << this->register_return_address << std::endl;
 
 
@@ -407,34 +474,46 @@ void CodeGen::visit(ASTNodeFunction* node) {
 }
 
 void CodeGen::visit(ASTNodeFunctionCall* node) {
+	if (this->in_top_level() && !this->in_global_init) {
+		this->global_initializers.push_back(node);
+		return;
+	}
 	std::map<std::string, CodeGenFunction*>::iterator it = this->functions.find(node->function_name);
 	if (it == this->functions.end()) {
-		throw std::runtime_error("Undeclared function called");
+		throw std::runtime_error("Undeclared function \"" + node->function_name + "\" called");
 	}
 	ASTNodeFunctionPrototype* prototype = std::get<0>(*(it->second))->prototype;
 	if (node->args->size() != prototype->args->size()) {
 		throw std::runtime_error("Function called with invalid number of arguments");
 	}
-	this->commit();
-	this->stack_pointer(prototype->args->size(), "call " + node->function_name);
-	this->function_call_args_offset += prototype->args->size();
+	int32_t stack_required = prototype->args->size() + 1;
+	this->stack_pointer(stack_required, "call " + node->function_name);
+	this->stack_random_offset += stack_required;
+	std::cout << "store r" << this->register_return_address << " " << stack_required << std::endl;
 	int32_t i = 0;
 	for (std::vector<ASTNode*>::iterator it = node->args->begin(); it != node->args->end(); it++) {
 		(*it)->accept(this);
 		std::cout << "store r" << this->current_register << " " << i + 1 << " # " << "arg " << i << std::endl;
 		i++;
 	}
-	this->function_call_args_offset -= prototype->args->size();
+	this->commit();
 	std::cout << "literal :" << "_" << this->labels << "_call_" << prototype->function_name << " r" << this->register_return_address << std::endl;
 	std::cout << "jump :" << "_" << std::get<1>(*(it->second)) << "__" << prototype->function_name << std::endl;
 	std::cout << "_" << this->labels << "_call_" << prototype->function_name << ":" << std::endl;
-	this->stack_pointer(-prototype->args->size(), "call " + node->function_name + "/unstack");
+	std::cout << "load " << stack_required << " r" << this->register_return_address << std::endl;
+	this->stack_random_offset -= stack_required;
+	this->stack_pointer(-stack_required, "call " + node->function_name + "/unstack");
 	this->labels++;
 	this->current_register = this->register_return_value;
 	this->nodes_visited++;
 }
 
 void CodeGen::visit(ASTNodeIfElse* node) {
+	if (this->in_top_level() && !this->in_global_init) {
+		this->global_initializers.push_back(node);
+		return;
+	}
+	this->commit();
 	this->push_scope();
 	int32_t reg_c = this->register_result;
 	node->cond->accept(this);
@@ -452,8 +531,11 @@ void CodeGen::visit(ASTNodeIfElse* node) {
 	std::cout << "jump :" << if_true << std::endl;
 	std::cout << "jump :" << if_false_before << std::endl;
 	std::cout << if_true << ":" << " # " << "if " + std::to_string(l1) + "/true" << std::endl;
+	this->push_scope();
 	node->if_true->accept(this);
 	code_gen_mov_registers(this->current_register, reg_c, "if/true eval");
+	this->pop_scope("if true/pop_inner");
+	this->commit();
 	std::cout << "literal :" << if_merge << " r" << this->register_tmp << std::endl;
 	std::cout << "jump :" << if_true_cleanup << std::endl;
 	std::cout << if_false_before << ": " << " # " << "if " + std::to_string(l1) << "/false_before" << std::endl;
@@ -461,15 +543,15 @@ void CodeGen::visit(ASTNodeIfElse* node) {
 	std::cout << "jump :" << if_true_cleanup << std::endl;
 	std::cout << if_true_cleanup << ": " << " # " << "if " + std::to_string(l1) << "/true_cleanup" << std::endl;
 	this->pop_scope("if true/pop");
+	this->commit();
 	std::cout << "jump r" << this->register_tmp << std::endl;
 	std::cout << if_false << ":" << " # " << "if " + std::to_string(l1) + "/false" << std::endl;
-	if (node->if_false == NULL) {
-		std::cout << "literal 0 r" << reg_c << std::endl;
-	} else {
+	if (node->if_false != NULL) {
 		this->push_scope();
 		node->if_false->accept(this);
-		code_gen_mov_registers(this->current_register, reg_c, "if/false ");
+		code_gen_mov_registers(this->current_register, reg_c, "if/false eval");
 		this->pop_scope("if false/pop");
+		this->commit();
 	}
 	std::cout << "jump :" << if_merge << std::endl;
 	std::cout << if_merge << ":" << " # " << "if " + std::to_string(l1) + "/merge" <<  std::endl;
@@ -478,6 +560,10 @@ void CodeGen::visit(ASTNodeIfElse* node) {
 }
 
 void CodeGen::visit(ASTNodeAssembly* node) {
+	if (this->in_top_level() && !this->in_global_init) {
+		this->global_initializers.push_back(node);
+		return;
+	}
 	this->commit();
 	for (std::vector<std::string>::iterator it = node->lines->begin(); it != node->lines->end(); it++) {
 		std::cout << it->substr(1) << std::endl;
@@ -487,16 +573,24 @@ void CodeGen::visit(ASTNodeAssembly* node) {
 }
 
 void CodeGen::visit(ASTNodeEcho* node) {
+	if (this->in_top_level() && !this->in_global_init) {
+		this->global_initializers.push_back(node);
+		return;
+	}
 	for (int32_t i = 1; i < node->str.length() - 1; i++) {
 		std::cout << "literal " << CodeGen::charcode_from_char.at(node->str.substr(i, 1)) << " r" << this->register_result << std::endl;
 		ASTNodeLiteral x(CodeGen::charcode_from_char.at(node->str.substr(i, 1)));
-		ASTNodeFunctionCall fn_call("io_putchar", new std::vector<ASTNode*>(1, &x));
+		ASTNodeFunctionCall fn_call("io_putchar", new std::vector<ASTNode*>(1, new ASTNodePhony(&x)));
 		fn_call.accept(this);
 	}
 	this->nodes_visited++;
 }
 
 void CodeGen::visit(ASTNodeWhileLoop* node) {
+	if (this->in_top_level() && !this->in_global_init) {
+		this->global_initializers.push_back(node);
+		return;
+	}
 	int32_t l1 = this->labels++;
 	int32_t l2 = this->labels++;
 	int32_t l3 = this->labels++;
@@ -523,6 +617,10 @@ void CodeGen::visit(ASTNodeWhileLoop* node) {
 
 void CodeGen::visit(ASTNodeBreak* node) {
 	throw std::runtime_error("Sorry, need more passes");
+	if (this->in_top_level() && !this->in_global_init) {
+		this->global_initializers.push_back(node);
+		return;
+	}
 	std::string target = "-";
 	std::deque<std::string>::reverse_iterator it = this->loops.rbegin();
 	for (int32_t i = 0; i < node->times; i++) {
@@ -533,4 +631,8 @@ void CodeGen::visit(ASTNodeBreak* node) {
 		it++;
 	}
 	std::cout << "jump :" << target << std::endl;
+}
+
+void CodeGen::visit(ASTNodePhony* node) {
+	node->x->accept(this);
 }

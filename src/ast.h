@@ -7,7 +7,7 @@
 
 class CodeGen;
 
-enum tagEBinaryOperationType {
+enum tagEOperationType {
 	eADD = 1,
 	eSUBTRACT = 3,
 	eMULTIPLY = 5,
@@ -15,9 +15,12 @@ enum tagEBinaryOperationType {
 	eEQ = 0,
 	eLT = 2,
 	eGT = 4,
+	eLOGICAL_AND = 6,
+	eLOGICAL_OR = 8,
+	eLOGICAL_NOT = 10,
 };
 
-typedef enum tagEBinaryOperationType EBinaryOperationType;
+typedef enum tagEOperationType EOperationType;
 
 class IASTNodeVisitor;
 
@@ -82,14 +85,25 @@ public:
 
 class ASTNodeBinaryOperator : public ASTNode {
 public:
-	EBinaryOperationType op;
+	EOperationType op;
 	ASTNode* lhs;
 	ASTNode* rhs;
 
-	ASTNodeBinaryOperator(EBinaryOperationType, ASTNode*, ASTNode*);
+	ASTNodeBinaryOperator(EOperationType, ASTNode*, ASTNode*);
 	virtual void accept(IASTNodeVisitor*) override;
 
 	virtual ~ASTNodeBinaryOperator();
+};
+
+class ASTNodeUnaryOperator : public ASTNode {
+public:
+	EOperationType op;
+	ASTNode* x;
+
+	ASTNodeUnaryOperator(EOperationType, ASTNode*);
+	virtual void accept(IASTNodeVisitor*) override;
+
+	virtual ~ASTNodeUnaryOperator();
 };
 
 class ASTNodeFunctionPrototype : public ASTNode {
@@ -178,6 +192,16 @@ public:
 	virtual ~ASTNodeBreak();
 };
 
+class ASTNodePhony : public ASTNode {
+public:
+	ASTNode* x;
+
+	ASTNodePhony(ASTNode*);
+	virtual void accept(IASTNodeVisitor*) override;
+
+	virtual ~ASTNodePhony();
+};
+
 class IASTNodeVisitor {
 public:
 	virtual void visit(ASTNodeIdentifier*) = 0;
@@ -186,6 +210,7 @@ public:
 	virtual void visit(ASTNodeBlock*) = 0;
 	virtual void visit(ASTNodeAssignment*) = 0;
 	virtual void visit(ASTNodeBinaryOperator*) = 0;
+	virtual void visit(ASTNodeUnaryOperator*) = 0;
 	virtual void visit(ASTNodeFunctionPrototype*) = 0;
 	virtual void visit(ASTNodeFunction*) = 0;
 	virtual void visit(ASTNodeFunctionCall*) = 0;
@@ -194,6 +219,7 @@ public:
 	virtual void visit(ASTNodeEcho*) = 0;
 	virtual void visit(ASTNodeWhileLoop*) = 0;
 	virtual void visit(ASTNodeBreak*) = 0;
+	virtual void visit(ASTNodePhony*) = 0;
 };
 
 #endif /* __AST_H_ */

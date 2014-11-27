@@ -23,12 +23,16 @@ public:
 	bool will_read;
 	int32_t stack_delta;
 	std::deque<std::string> loops;
-	int32_t function_call_args_offset;
+	int32_t stack_random_offset;
+	std::list<ASTNode*> global_initializers;
+	bool in_global_init;
+	int32_t expected_stack_delta;
 
 	std::list<ASTNodeFunction*> liberate_me;
 
 	std::string* registers_with_variables;
 	int32_t* registers_last_used;
+	bool* registers_dirty;
 
 	int32_t num_registers_useable;
 	int32_t register_tmp;
@@ -43,7 +47,7 @@ public:
 	ASTNode* parse(std::istream*);
 	void gen_program(ASTNode*);
 	void stack_pointer(int32_t, std::string);
-	void commit();
+	void commit(bool = true);
 	void push_scope();
 	void pop_scope(std::string, int32_t = 0);
 	int32_t* find_local(std::string);
@@ -62,6 +66,7 @@ public:
 	void visit(ASTNodeBlock*) override;
 	void visit(ASTNodeAssignment*) override;
 	void visit(ASTNodeBinaryOperator*) override;
+	void visit(ASTNodeUnaryOperator*) override;
 	void visit(ASTNodeFunctionPrototype*) override;
 	void visit(ASTNodeFunction*) override;
 	void visit(ASTNodeFunctionCall*) override;
@@ -70,6 +75,7 @@ public:
 	void visit(ASTNodeEcho*) override;
 	void visit(ASTNodeWhileLoop*) override;
 	void visit(ASTNodeBreak*) override;
+	void visit(ASTNodePhony*) override;
 
 	static std::map<std::string, int32_t> charcode_from_char;
 private:

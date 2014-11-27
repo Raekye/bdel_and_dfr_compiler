@@ -21,10 +21,15 @@ ASTNodeAssignment::ASTNodeAssignment(ASTNodeIdentifier* lhs, ASTNode* rhs) {
 	this->rhs = rhs;
 }
 
-ASTNodeBinaryOperator::ASTNodeBinaryOperator(EBinaryOperationType op, ASTNode* lhs, ASTNode* rhs) {
+ASTNodeBinaryOperator::ASTNodeBinaryOperator(EOperationType op, ASTNode* lhs, ASTNode* rhs) {
 	this->op = op;
 	this->lhs = lhs;
 	this->rhs = rhs;
+}
+
+ASTNodeUnaryOperator::ASTNodeUnaryOperator(EOperationType op, ASTNode* x) {
+	this->op = op;
+	this->x = x;
 }
 
 ASTNodeFunction::ASTNodeFunction(ASTNodeFunctionPrototype* prototype, ASTNodeBlock* body) {
@@ -65,6 +70,10 @@ ASTNodeBreak::ASTNodeBreak(int32_t times) {
 	this->times = times;
 }
 
+ASTNodePhony::ASTNodePhony(ASTNode* x) {
+	this->x = x;
+}
+
 ASTNode::~ASTNode() {
 	return;
 }
@@ -95,6 +104,10 @@ ASTNodeAssignment::~ASTNodeAssignment() {
 ASTNodeBinaryOperator::~ASTNodeBinaryOperator() {
 	delete this->lhs;
 	delete this->rhs;
+}
+
+ASTNodeUnaryOperator::~ASTNodeUnaryOperator() {
+	delete this->x;
 }
 
 ASTNodeFunctionPrototype::~ASTNodeFunctionPrototype() {
@@ -139,6 +152,10 @@ ASTNodeBreak::~ASTNodeBreak() {
 	return;
 }
 
+ASTNodePhony::~ASTNodePhony() {
+	return;
+}
+
 void ASTNodeIdentifier::accept(IASTNodeVisitor* visitor) {
 	visitor->visit(this);
 }
@@ -160,6 +177,10 @@ void ASTNodeAssignment::accept(IASTNodeVisitor* visitor) {
 }
 
 void ASTNodeBinaryOperator::accept(IASTNodeVisitor* visitor) {
+	visitor->visit(this);
+}
+
+void ASTNodeUnaryOperator::accept(IASTNodeVisitor* visitor) {
 	visitor->visit(this);
 }
 
@@ -192,6 +213,10 @@ void ASTNodeWhileLoop::accept(IASTNodeVisitor* visitor) {
 }
 
 void ASTNodeBreak::accept(IASTNodeVisitor* visitor) {
+	visitor->visit(this);
+}
+
+void ASTNodePhony::accept(IASTNodeVisitor* visitor) {
 	visitor->visit(this);
 }
 

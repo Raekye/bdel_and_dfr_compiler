@@ -117,7 +117,7 @@ sub process_instruction {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(keyboard) r(\d+) r(\d+) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
-	} elsif ($instr =~ /(heap) r(\d+) r(\d+)/) {
+	} elsif ($instr =~ /^(heap) r(\d+) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3);
 	} elsif ($instr =~ /(unheap) r(\d+) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3);
@@ -135,6 +135,20 @@ sub process_instruction {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3);
 	} elsif ($instr =~ /(printdec) r(\d+) r(\d+) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
+	} elsif ($instr =~ /(eq) r(\d+) r(\d+) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
+	} elsif ($instr =~ /(lt) r(\d+) r(\d+) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
+	} elsif ($instr =~ /(gt) r(\d+) r(\d+) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
+	} elsif ($instr =~ /(not) r(\d+) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3);
+	} elsif ($instr =~ /(and) r(\d+) r(\d+) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
+	} elsif ($instr =~ /(or) r(\d+) r(\d+) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
+	} elsif ($instr =~ /(rand) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1));
 	} elsif ($instr =~ /(die)/) {
 		print_binary_instruction(binary_opcode_from_string($1));
 	} else {
@@ -160,16 +174,23 @@ sub binary_opcode_from_string {
 		'stack' => 13,
 		'supermandive' => 14,
 		'getup' => 15,
-		'printhex' => 22,
+		'printdec' => 16,
 		'draw' => 17,
 		'keyboard' => 18,
 		'heap' => 19,
 		'unheap' => 20,
 		'keyhex' => 21,
+		'printhex' => 22,
 		'inc' => 23,
 		'dec' => 24,
 		'mov' => 25,
-		'printdec' => 16,
+		'not' => 26,
+		'and' => 27,
+		'or' => 28,
+		'eq' => 29,
+		'lt' => 30,
+		'gt' => 31,
+		'rand' => 32,
 		'die' => -1,
 	);
 	return $map{$_[0]};

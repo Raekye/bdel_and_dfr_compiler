@@ -4,6 +4,7 @@
 #include "parser.h"
 #include "lexer.h"
 #include "ast.h"
+#include "code_gen.h"
 
 void yyerror(YYLTYPE* llocp, ASTNode**, yyscan_t scanner, const char *s) {
 	std::cerr << "YYERROR: " << s << ", " << llocp->first_line << ", " << llocp->first_column << ", " << llocp->last_line << ", " << llocp->last_column << std::endl;
@@ -49,6 +50,7 @@ typedef void* yyscan_t;
 }
 
 %right TOKEN_ASSIGN
+%left TOKEN_LOGICAL_AND TOKEN_LOGICAL_OR
 %left TOKEN_EQ TOKEN_LT TOKEN_GT
 %left TOKEN_ADD TOKEN_SUBTRACT
 %left TOKEN_MULTIPLY TOKEN_DIVIDE
@@ -56,11 +58,12 @@ typedef void* yyscan_t;
 
 %token TOKEN_LPAREN TOKEN_RPAREN TOKEN_ASSIGN TOKEN_LBRACE TOKEN_RBRACE
 %token TOKEN_ADD TOKEN_MULTIPLY TOKEN_DIVIDE TOKEN_SUBTRACT
+%token TOKEN_LOGICAL_AND TOKEN_LOGICAL_OR TOKEN_LOGICAL_NOT
 %token TOKEN_COMMA TOKEN_IF TOKEN_ELSE TOKEN_VAR TOKEN_DEF TOKEN_RETURN TOKEN_WHILE TOKEN_ECHO TOKEN_ASM TOKEN_BREAK
 %token TOKEN_SEMICOLON
-%token <str> TOKEN_NUMBER TOKEN_IDENTIFIER TOKEN_STRING TOKEN_ASSEMBLY_CODE
+%token <str> TOKEN_NUMBER TOKEN_IDENTIFIER TOKEN_STRING TOKEN_ASSEMBLY_CODE TOKEN_CHAR
 
-%type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr top_level_expr echo_expr while_loop_expr assembly_expr break_expr expr_or_block block
+%type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr top_level_expr echo_expr while_loop_expr assembly_expr break_expr expr_or_block block unary_operator_expr
 %type <block> stmts top_level_expr_list
 %type <identifier> identifier
 %type <function_prototype> function_prototype_expr
@@ -112,6 +115,7 @@ expr
 	| declaration_expr { $$ = $1; }
 	| assignment_expr { $$ = $1; }
 	| function_call_expr { $$ = $1; }
+	| unary_operator_expr { $$ = $1; }
 	| binary_operator_expr { $$ = $1; }
 	| echo_expr { $$ = $1; }
 	| assembly_expr { $$ = $1; }
@@ -134,6 +138,10 @@ identifier
 number
 	: TOKEN_NUMBER {
 		$$ = new ASTNodeLiteral(std::stoi(*$1));
+		delete $1;
+	}
+	| TOKEN_CHAR {
+		$$ = new ASTNodeLiteral(CodeGen::charcode_from_char.at($1->substr(1, 1)));
 		delete $1;
 	}
 	;
@@ -169,6 +177,12 @@ binary_operator_expr
 	| expr TOKEN_EQ expr { $$ = new ASTNodeBinaryOperator(eEQ, $1, $3); }
 	| expr TOKEN_LT expr { $$ = new ASTNodeBinaryOperator(eLT, $1, $3); }
 	| expr TOKEN_GT expr { $$ = new ASTNodeBinaryOperator(eGT, $1, $3); }
+	| expr TOKEN_LOGICAL_AND expr { $$ = new ASTNodeBinaryOperator(eLOGICAL_AND, $1, $3); }
+	| expr TOKEN_LOGICAL_OR expr { $$ = new ASTNodeBinaryOperator(eLOGICAL_OR, $1, $3); }
+	;
+
+unary_operator_expr
+	: TOKEN_LOGICAL_NOT expr { $$ = new ASTNodeUnaryOperator(eLOGICAL_NOT, $2); }
 	;
 
 function_prototype_expr
