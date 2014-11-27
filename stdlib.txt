@@ -92,7 +92,9 @@ def io_clear() {
 				%literal " " r2;
 				%draw r2 r0 r1;
 			};
+			j = j + 1;
 		}
+		i = i + 1;
 	}
 }
 
@@ -141,7 +143,7 @@ def io_puthex(var ch) {
 	asm {
 		%load 3 r0;
 		%load 2 r1;
-		%load 1 r0;
+		%load 1 r2;
 		%printhex r0 r1 r2;
 	};
 	io_x = io_x + 4;
@@ -163,4 +165,61 @@ def io_readhex() {
 def io_endl() {
 	io_x = 255;
 	io_normalize(0);
+}
+
+def vector_new(var n) {
+	var pt = malloc(3);
+	var array = malloc(n);
+	heap_set(pt, array);
+	heap_set(pt + 1, n);
+	heap_set(pt + 2, 0);
+	pt;
+}
+
+def vector_delete(var pt) {
+	free(heap_get(pt));
+	free(pt);
+}
+
+def vector_get(var pt, var i) {
+	heap_get(heap_get(pt) + i);
+}
+
+def vector_set(var pt, var i, var x) {
+	heap_set(heap_get(pt) + i, x);
+}
+
+def vector_size(var pt) {
+	heap_get(pt + 2);
+}
+
+def vector_normalize(var pt) {
+	var alloc_prev = heap_get(pt + 1);
+	if (alloc_prev == heap_get(pt + 2)) {
+		var size_prime = alloc_prev + 4;
+		var array_prime = malloc(size_prime);
+		var array = heap_get(pt);
+		var i = 0;
+		while (i < alloc_prev) {
+			heap_set(array_prime + i, heap_get(array + i));
+		}
+		free(pt);
+		heap_set(pt, array_prime);
+		heap_set(pt + 1, size_prime);
+	}
+	pt;
+}
+
+def vector_push(var pt, var x) {
+	vector_normalize(pt);
+	var next_index = vector_size(pt) + 1;
+	vector_set(pt, next_index, x);
+	heap_set(pt + 2, next_index);
+}
+
+def vector_pop(var pt) {
+	var next_size = vector_size(pt) - 1;
+	var x = vector_get(pt, next_size);
+	heap_set(pt + 2, next_size);
+	x;
 }

@@ -43,6 +43,7 @@ CodeGen::~CodeGen() {
 	}
 	delete[] this->registers_with_variables;
 	delete[] this->registers_last_used;
+	delete[] this->registers_dirty;
 	for (std::list<ASTNodeFunction*>::iterator it = this->liberate_me.begin(); it != this->liberate_me.end(); it++) {
 		(*it)->prototype = NULL;
 		delete *it;
@@ -123,7 +124,7 @@ void CodeGen::stack_pointer(int32_t n, std::string comment) {
 void CodeGen::commit(bool include_locals) {
 	for (int32_t i = 0; i < this->num_registers_useable; i++) {
 		if (this->registers_with_variables[i] != "-") {
-			if (this->registers_dirty) {
+			if (this->registers_dirty[i]) {
 				int32_t* relative_pos = this->find_local(registers_with_variables[i]);
 				if (relative_pos == NULL) {
 					std::cout << "literal " << this->globals.at(this->registers_with_variables[i]) << " r" << this->register_result <<std::endl;
@@ -291,7 +292,7 @@ void CodeGen::visit(ASTNodeDeclaration* node) {
 
 		std::map<std::string, int32_t>::iterator it = this->variables_in_registers.find(node->var_name);
 		if (it != this->variables_in_registers.end()) {
-			if (this->registers_dirty) {
+			if (this->registers_dirty[it->second]) {
 				int32_t* relative_pos = this->find_local(node->var_name);
 				if (relative_pos == NULL) {
 					std::cout << "literal " << this->globals.at(this->registers_with_variables[it->second]) << " r" << this->register_result << std::endl;
@@ -517,6 +518,7 @@ void CodeGen::visit(ASTNodeIfElse* node) {
 	this->push_scope();
 	int32_t reg_c = this->register_result;
 	node->cond->accept(this);
+	this->commit();
 	int32_t l1 = this->labels++;
 	int32_t l2 = this->labels++;
 	int32_t l3 = this->labels++;
@@ -543,7 +545,7 @@ void CodeGen::visit(ASTNodeIfElse* node) {
 	std::cout << "jump :" << if_true_cleanup << std::endl;
 	std::cout << if_true_cleanup << ": " << " # " << "if " + std::to_string(l1) << "/true_cleanup" << std::endl;
 	this->pop_scope("if true/pop");
-	this->commit();
+	//this->commit();
 	std::cout << "jump r" << this->register_tmp << std::endl;
 	std::cout << if_false << ":" << " # " << "if " + std::to_string(l1) + "/false" << std::endl;
 	if (node->if_false != NULL) {

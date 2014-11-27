@@ -33,7 +33,6 @@ Hmmm
 - don't need register tmp?
 - unneeded commit globals?
 - scope should know which variables in registers
-- fix: assigning globals in if cond
 
 ## More hmmmm
 - [Sufficient conditions for Turing-completeness][1]
