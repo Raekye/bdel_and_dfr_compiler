@@ -76,6 +76,7 @@ public:
 	void visit(ASTNodeWhileLoop*) override;
 	void visit(ASTNodeBreak*) override;
 	void visit(ASTNodePhony*) override;
+	void visit(ASTNodeFunctionReference*) override;
 
 	static std::map<std::string, int32_t> charcode_from_char;
 private:

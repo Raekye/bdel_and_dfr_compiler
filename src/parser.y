@@ -53,7 +53,7 @@ typedef void* yyscan_t;
 %left TOKEN_LOGICAL_AND TOKEN_LOGICAL_OR
 %left TOKEN_EQ TOKEN_LT TOKEN_GT
 %left TOKEN_ADD TOKEN_SUBTRACT
-%left TOKEN_MULTIPLY TOKEN_DIVIDE
+%left TOKEN_MULTIPLY TOKEN_DIVIDE TOKEN_MOD
 %left TOKEN_LOGICAL_NOT;
 %left TOKEN_RPAREN
 
@@ -62,9 +62,9 @@ typedef void* yyscan_t;
 %token TOKEN_LOGICAL_AND TOKEN_LOGICAL_OR TOKEN_LOGICAL_NOT
 %token TOKEN_COMMA TOKEN_IF TOKEN_ELSE TOKEN_VAR TOKEN_DEF TOKEN_RETURN TOKEN_WHILE TOKEN_ECHO TOKEN_ASM TOKEN_BREAK
 %token TOKEN_SEMICOLON
-%token <str> TOKEN_NUMBER TOKEN_IDENTIFIER TOKEN_STRING TOKEN_ASSEMBLY_CODE TOKEN_CHAR
+%token <str> TOKEN_NUMBER TOKEN_IDENTIFIER TOKEN_STRING TOKEN_ASSEMBLY_CODE TOKEN_CHAR TOKEN_FUNCTION_REFERENCE
 
-%type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr top_level_expr echo_expr while_loop_expr assembly_expr break_expr expr_or_block block unary_operator_expr
+%type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr top_level_expr echo_expr while_loop_expr assembly_expr break_expr expr_or_block block unary_operator_expr function_reference_expr
 %type <block> stmts top_level_expr_list
 %type <identifier> identifier
 %type <function_prototype> function_prototype_expr
@@ -121,6 +121,7 @@ expr
 	| echo_expr { $$ = $1; }
 	| assembly_expr { $$ = $1; }
 	| break_expr { $$ = $1; }
+	| function_reference_expr { $$ = $1; }
 	| declaration_expr TOKEN_ASSIGN expr {
 		ASTNodeBlock* block = new ASTNodeBlock();
 		block->push($1);
@@ -143,6 +144,13 @@ number
 	}
 	| TOKEN_CHAR {
 		$$ = new ASTNodeLiteral(CodeGen::charcode_from_char.at($1->substr(1, 1)));
+		delete $1;
+	}
+	;
+
+function_reference_expr
+	: TOKEN_FUNCTION_REFERENCE {
+		$$ = new ASTNodeFunctionReference($1->substr(1));
 		delete $1;
 	}
 	;
@@ -175,6 +183,7 @@ binary_operator_expr
 	| expr TOKEN_SUBTRACT expr { $$ = new ASTNodeBinaryOperator(eSUBTRACT, $1, $3); }
 	| expr TOKEN_DIVIDE expr { $$ = new ASTNodeBinaryOperator(eDIVIDE, $1, $3); }
 	| expr TOKEN_MULTIPLY expr { $$ = new ASTNodeBinaryOperator(eMULTIPLY, $1, $3); }
+	| expr TOKEN_MOD expr { $$ = new ASTNodeBinaryOperator(eMOD, $1, $3); }
 	| expr TOKEN_EQ expr { $$ = new ASTNodeBinaryOperator(eEQ, $1, $3); }
 	| expr TOKEN_LT expr { $$ = new ASTNodeBinaryOperator(eLT, $1, $3); }
 	| expr TOKEN_GT expr { $$ = new ASTNodeBinaryOperator(eGT, $1, $3); }

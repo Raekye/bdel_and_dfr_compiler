@@ -12,6 +12,7 @@ enum tagEOperationType {
 	eSUBTRACT = 3,
 	eMULTIPLY = 5,
 	eDIVIDE = 7,
+	eMOD = 9,
 	eEQ = 0,
 	eLT = 2,
 	eGT = 4,
@@ -202,6 +203,16 @@ public:
 	virtual ~ASTNodePhony();
 };
 
+class ASTNodeFunctionReference : public ASTNode {
+public:
+	std::string function_name;
+
+	ASTNodeFunctionReference(std::string);
+	virtual void accept(IASTNodeVisitor*) override;
+
+	virtual ~ASTNodeFunctionReference();
+};
+
 class IASTNodeVisitor {
 public:
 	virtual void visit(ASTNodeIdentifier*) = 0;
@@ -220,6 +231,7 @@ public:
 	virtual void visit(ASTNodeWhileLoop*) = 0;
 	virtual void visit(ASTNodeBreak*) = 0;
 	virtual void visit(ASTNodePhony*) = 0;
+	virtual void visit(ASTNodeFunctionReference*) = 0;
 };
 
 #endif /* __AST_H_ */

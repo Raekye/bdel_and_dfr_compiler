@@ -26,6 +26,7 @@ ADD "+"
 MULTIPLY "*"
 SUBTRACT "-"
 DIVIDE "/"
+MOD "%"
 ASSIGN "="
 COMMA ","
 EQ "=="
@@ -36,13 +37,14 @@ LOGICAL_OR "\|\|"
 LOGICAL_NOT "!"
 
 IDENTIFIER [a-z_][a-zA-Z0-9_]*
+FUNCTION_REFERENCE :[a-z_][a-zA-Z0-9_]*
 
 NUMBER [0-9]+
 WS [ \r\n\t]+
 CHAR '[a-z0-9 ]'
 
 STRING \"[a-z0-9 ]+\"
-ASSEMBLY_CODE %[a-z0-9_: "]+
+ASSEMBLY_CODE #[a-z0-9_: "]+
 
 %%
 
@@ -50,6 +52,7 @@ ASSEMBLY_CODE %[a-z0-9_: "]+
 {SUBTRACT} { return TOKEN_SUBTRACT; }
 {MULTIPLY} { return TOKEN_MULTIPLY; }
 {DIVIDE} { return TOKEN_DIVIDE; }
+{MOD} { return TOKEN_MOD; }
 {LPAREN} { return TOKEN_LPAREN; }
 {RPAREN} { return TOKEN_RPAREN; }
 {LBRACE} { return TOKEN_LBRACE; }
@@ -78,6 +81,7 @@ break { return TOKEN_BREAK; }
 {STRING} { SAVE_TOKEN; return TOKEN_STRING; }
 {ASSEMBLY_CODE} { SAVE_TOKEN; return TOKEN_ASSEMBLY_CODE; }
 {CHAR} { SAVE_TOKEN; return TOKEN_CHAR; }
+{FUNCTION_REFERENCE} { SAVE_TOKEN; return TOKEN_FUNCTION_REFERENCE; }
 
 {WS} { /* pass */ }
 

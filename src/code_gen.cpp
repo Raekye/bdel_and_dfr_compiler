@@ -384,6 +384,9 @@ void CodeGen::visit(ASTNodeBinaryOperator* node) {
 		case eDIVIDE:
 			std::cout << "div r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
 			break;
+		case eMOD:
+			std::cout << "mod r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
+			break;
 		case eEQ:
 			std::cout << "eq r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
 			break;
@@ -641,4 +644,19 @@ void CodeGen::visit(ASTNodeBreak* node) {
 
 void CodeGen::visit(ASTNodePhony* node) {
 	node->x->accept(this);
+}
+
+void CodeGen::visit(ASTNodeFunctionReference* node) {
+	if (this->in_top_level() && !this->in_global_init) {
+		this->global_initializers.push_back(node);
+		return;
+	}
+	std::map<std::string, CodeGenFunction*>::iterator it = this->functions.find(node->function_name);
+	if (it == this->functions.end()) {
+		throw std::runtime_error("Undeclared function \"" + node->function_name + "\" referenced");
+	}
+	int32_t index = this->register_result;
+	std::cout << "literal :" << "_" << std::get<1>(*(it->second)) << "__" << node->function_name << " r" << index << std::endl;
+	this->current_register = index;
+	this->nodes_visited++;
 }

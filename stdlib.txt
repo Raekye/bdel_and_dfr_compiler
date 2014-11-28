@@ -1,9 +1,9 @@
 def io_draw(var charcode, var x, var y) {
 	asm {
-		%load 1 r0;
-		%load 2 r1;
-		%load 3 r2;
-		%draw r0 r1 r2;
+		#load 1 r0;
+		#load 2 r1;
+		#load 3 r2;
+		#draw r0 r1 r2;
 	};
 }
 
@@ -16,10 +16,10 @@ def io_clear() {
 		var j = 0;
 		while (j < 28) {
 			asm {
-				%load 2 r0;
-				%load 1 r1;
-				%literal " " r2;
-				%draw r2 r0 r1;
+				#load 2 r0;
+				#load 1 r1;
+				#literal " " r2;
+				#draw r2 r0 r1;
 			};
 			j = j + 1;
 		}
@@ -44,10 +44,10 @@ def io_putchar(var ch) {
 	var x = io_x;
 	var y = io_y;
 	asm {
-		%load 3 r0;
-		%load 2 r1;
-		%load 1 r2;
-		%draw r0 r1 r2;
+		#load 3 r0;
+		#load 2 r1;
+		#load 1 r2;
+		#draw r0 r1 r2;
 	};
 	io_x = io_x + 1;
 }
@@ -57,9 +57,9 @@ def io_readchar() {
 	var x = io_x;
 	var y = io_y;
 	var z = asm {
-		%load 3 r0;
-		%load 2 r1;
-		%keyboard r0 r1 r13;
+		#load 3 r0;
+		#load 2 r1;
+		#keyboard r0 r1 r13;
 	};
 	io_x = io_x + 1;
 	z;
@@ -70,10 +70,10 @@ def io_puthex(var ch) {
 	var x = io_x;
 	var y = io_y;
 	asm {
-		%load 3 r0;
-		%load 2 r1;
-		%load 1 r2;
-		%printhex r0 r1 r2;
+		#load 3 r0;
+		#load 2 r1;
+		#load 1 r2;
+		#printhex r0 r1 r2;
 	};
 	io_x = io_x + 4;
 }
@@ -83,9 +83,9 @@ def io_readhex() {
 	var x = io_x;
 	var y = io_y;
 	var z = asm {
-		%load 3 r0;
-		%load 2 r1;
-		%keyhex r0 r1 r13;
+		#load 3 r0;
+		#load 2 r1;
+		#keyhex r0 r1 r13;
 	};
 	io_x = io_x + 4;
 	z;
@@ -96,10 +96,10 @@ def io_putdec(var ch) {
 	var x = io_x;
 	var y = io_y;
 	asm {
-		%load 3 r0;
-		%load 2 r1;
-		%load 1 r2;
-		%printdec r0 r1 r2;
+		#load 3 r0;
+		#load 2 r1;
+		#load 1 r2;
+		#printdec r0 r1 r2;
 	};
 	io_x = io_x + 4;
 }
@@ -111,32 +111,32 @@ def io_endl() {
 
 def error(var code) {
 	asm {
-		%load 1 r0;
-		%output r0;
-		%die;
+		#load 1 r0;
+		#output r0;
+		#die;
 	};
 }
 
 def heap_get(var address) {
 	asm {
-		%load 1 r0;
-		%unheap r0 r13;
+		#load 1 r0;
+		#unheap r0 r13;
 	};
 }
 
 def heap_set(var address, var value) {
 	asm {
-		%load 1 r0;
-		%load 2 r1;
-		%heap r1 r0;
+		#load 1 r0;
+		#load 2 r1;
+		#heap r1 r0;
 	};
 	value;
 }
 
 def malloc(var n) {
 	var i = asm {
-		%literal 0 r0;
-		%unheap r0 r13;
+		#literal 0 r0;
+		#unheap r0 r13;
 	};
 	var ret = 0;
 	var break_i = 0;
@@ -296,7 +296,7 @@ def mergesort(var pt) {
 
 def rand() {
 	asm {
-		%rand r13;
+		#rand r13;
 	};
 }
 

@@ -170,7 +170,7 @@ sub binary_opcode_from_string {
 		'sub' => 7,
 		'mul' => 8,
 		'div' => 9,
-		'cmp' => 10,
+		'keydec' => 10,
 		'branch' => 11,
 		'jump' => 12,
 		'stack' => 13,
