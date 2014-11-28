@@ -18,12 +18,12 @@ def main() {
 	var program_locations = vector_new(4);
 
 	/* @INSERT_PROGRAMS */
-	vector_push(program_names, "foo");
+	/*vector_push(program_names, "foo");
 	vector_push(program_locations, :foo);
 	vector_push(program_names, "bar");
 	vector_push(program_locations, :bar);
 	vector_push(program_names, "baz");
-	vector_push(program_locations, :baz);
+	vector_push(program_locations, :baz);*/
 
 	while (1) {
 		io_clear();
@@ -47,7 +47,7 @@ def main() {
 		io_endl();
 		if (x < 0 || x >= vector_size(program_names)) {
 			echo "invalid";
-			io_readchar();
+			io_wait();
 		} else {
 			io_clear();
 			var address = vector_get(program_locations, x);
@@ -61,7 +61,7 @@ def main() {
 				#load 1 r14;
 				#stack -1;
 			};
-			io_readchar();
+			io_wait();
 		}
 	}
 }

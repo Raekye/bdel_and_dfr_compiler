@@ -10,6 +10,9 @@ def io_draw(var charcode, var x, var y) {
 var io_x = 0;
 var io_y = 0;
 
+def io_cr();
+def io_wait();
+
 def io_clear() {
 	var i = 0;
 	while (i < 52) {
@@ -35,6 +38,12 @@ def io_normalize(var n) {
 		io_y = io_y + 1;
 	}
 	if (io_y > 28 - 1) {
+		io_y = 26;
+		io_cr();
+		io_y = 25;
+		io_cr();
+		io_y = 24;
+		io_wait();
 		io_clear();
 	}
 }
@@ -130,6 +139,13 @@ def io_cr() {
 def io_endl() {
 	io_x = 255;
 	io_normalize(0);
+}
+
+def io_wait() {
+	io_endl();
+	io_endl();
+	echo "press any key to continue";
+	io_readchar();
 }
 
 def error(var code) {
