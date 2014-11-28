@@ -19,6 +19,8 @@ enum tagEOperationType {
 	eLOGICAL_AND = 6,
 	eLOGICAL_OR = 8,
 	eLOGICAL_NOT = 10,
+	eLE = 12,
+	eGE = 14,
 };
 
 typedef enum tagEOperationType EOperationType;

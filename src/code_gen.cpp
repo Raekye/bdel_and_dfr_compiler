@@ -396,6 +396,14 @@ void CodeGen::visit(ASTNodeBinaryOperator* node) {
 		case eGT:
 			std::cout << "gt r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
 			break;
+		case eLE:
+			std::cout << "gt r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
+			std::cout << "not r" << reg_c << " r" << reg_c << std::endl;
+			break;
+		case eGE:
+			std::cout << "lt r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
+			std::cout << "not r" << reg_c << " r" << reg_c << std::endl;
+			break;
 		case eLOGICAL_AND:
 			std::cout << "and r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
 			break;
@@ -418,6 +426,9 @@ void CodeGen::visit(ASTNodeUnaryOperator* node) {
 	if (node->op == eLOGICAL_NOT) {
 		node->x->accept(this);
 		std::cout << "not r" << this->current_register << " r" << reg_a << std::endl;
+	} else if (node->op == eSUBTRACT) {
+		ASTNodeBinaryOperator negate(eSUBTRACT, new ASTNodeLiteral(0), new ASTNodePhony(node->x));
+		negate.accept(this);
 	} else {
 		throw std::runtime_error("Unknown unary operator");
 	}

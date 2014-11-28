@@ -51,10 +51,10 @@ typedef void* yyscan_t;
 
 %right TOKEN_ASSIGN
 %left TOKEN_LOGICAL_AND TOKEN_LOGICAL_OR
-%left TOKEN_EQ TOKEN_LT TOKEN_GT
+%left TOKEN_EQ TOKEN_LT TOKEN_GT TOKEN_LE TOKEN_GE
 %left TOKEN_ADD TOKEN_SUBTRACT
 %left TOKEN_MULTIPLY TOKEN_DIVIDE TOKEN_MOD
-%left TOKEN_LOGICAL_NOT;
+%left TOKEN_LOGICAL_NOT TOKEN_UMINUS
 %left TOKEN_RPAREN
 
 %token TOKEN_LPAREN TOKEN_RPAREN TOKEN_ASSIGN TOKEN_LBRACE TOKEN_RBRACE
@@ -187,12 +187,15 @@ binary_operator_expr
 	| expr TOKEN_EQ expr { $$ = new ASTNodeBinaryOperator(eEQ, $1, $3); }
 	| expr TOKEN_LT expr { $$ = new ASTNodeBinaryOperator(eLT, $1, $3); }
 	| expr TOKEN_GT expr { $$ = new ASTNodeBinaryOperator(eGT, $1, $3); }
+	| expr TOKEN_LE expr { $$ = new ASTNodeBinaryOperator(eLE, $1, $3); }
+	| expr TOKEN_GE expr { $$ = new ASTNodeBinaryOperator(eGE, $1, $3); }
 	| expr TOKEN_LOGICAL_AND expr { $$ = new ASTNodeBinaryOperator(eLOGICAL_AND, $1, $3); }
 	| expr TOKEN_LOGICAL_OR expr { $$ = new ASTNodeBinaryOperator(eLOGICAL_OR, $1, $3); }
 	;
 
 unary_operator_expr
 	: TOKEN_LOGICAL_NOT expr { $$ = new ASTNodeUnaryOperator(eLOGICAL_NOT, $2); }
+	| TOKEN_SUBTRACT expr %prec TOKEN_UMINUS { $$ = new ASTNodeUnaryOperator(eSUBTRACT, $2); }
 	;
 
 function_prototype_expr

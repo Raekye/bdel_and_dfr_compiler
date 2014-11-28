@@ -32,6 +32,8 @@ COMMA ","
 EQ "=="
 LT "\<"
 GT ">"
+LE "\<="
+GE ">="
 LOGICAL_AND "\&\&"
 LOGICAL_OR "\|\|"
 LOGICAL_NOT "!"
@@ -63,6 +65,8 @@ ASSEMBLY_CODE #[a-z0-9_: "]+
 {EQ} { return TOKEN_EQ; }
 {LT} { return TOKEN_LT; }
 {GT} { return TOKEN_GT; }
+{LE} { return TOKEN_LE; }
+{GE} { return TOKEN_GE; }
 {LOGICAL_AND} { return TOKEN_LOGICAL_AND; }
 {LOGICAL_OR} { return TOKEN_LOGICAL_OR; }
 {LOGICAL_NOT} { return TOKEN_LOGICAL_NOT; }

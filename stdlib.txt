@@ -302,7 +302,7 @@ def rand() {
 
 def abs(var x) {
 	if (x < 0) {
-		0 - x;
+		-x;
 	} else {
 		x;
 	}
