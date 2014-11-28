@@ -210,14 +210,13 @@ def vector_normalize(var pt) {
 		heap_set(pt, array_prime);
 		heap_set(pt + 1, size_prime);
 	}
-	pt;
 }
 
 def vector_push(var pt, var x) {
 	vector_normalize(pt);
-	var next_index = vector_size(pt) + 1;
-	vector_set(pt, next_index, x);
-	heap_set(pt + 2, next_index);
+	var size = vector_size(pt);
+	vector_set(pt, size, x);
+	heap_set(pt + 2, size + 1);
 }
 
 def vector_pop(var pt) {

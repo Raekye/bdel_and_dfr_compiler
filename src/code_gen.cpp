@@ -256,7 +256,7 @@ void CodeGen::visit(ASTNodeIdentifier* node) {
 		}
 	} else {
 		if (this->will_read) {
-			std::cout << "load " << (this->locals_size() - *relative_pos) << " r" << index << " # " << "load " << node->name << std::endl;
+			std::cout << "load " << (this->locals_size() - *relative_pos) << " r" << index << " # " << "load " << node->name << ", " << this->locals_size() << ", " << *relative_pos << ", " << this->stack_random_offset << std::endl;
 		}
 		delete relative_pos;
 	}
@@ -458,7 +458,7 @@ void CodeGen::visit(ASTNodeFunction* node) {
 
 	int32_t i = 0;
 	for (std::vector<ASTNodeDeclaration*>::iterator it = node->prototype->args->begin(); it != node->prototype->args->end(); it++) {
-		this->put_local((*it)->var_name, -i);
+		this->put_local((*it)->var_name, node->prototype->args->size() - i - 1);
 		i++;
 	}
 	node->body->accept(this);
