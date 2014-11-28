@@ -36,6 +36,7 @@ def main() {
 		io_putchar(' ');
 		i = i + 1;
 	}
+	free(sorted);
 	io_endl();
 	io_endl();
 	echo "done";

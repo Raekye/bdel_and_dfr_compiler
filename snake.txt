@@ -1,0 +1,155 @@
+var snake_x;
+var snake_y;
+var snake_direction;
+var food_x;
+var food_y;
+var score;
+var snake_dead;
+
+def snake_advance();
+def check_collision();
+def draw_game();
+def draw_score();
+def pick_new_x();
+
+def game_tick() {
+	var x = vector_get(snake_x, 0);
+	var y = vector_get(snake_y, 0);
+	if (food_x == x && food_y == y) {
+		vector_push(snake_x, 0);
+		vector_push(snake_y, 0);
+		score = score + 1;
+		draw_score();
+		pick_new_x();
+	}
+	snake_advance();
+	check_collision();
+	if (!snake_dead) {
+		draw_game();
+	}
+}
+
+def pick_new_x() {
+	var do_break = 0;
+	while (!do_break) {
+		food_x = abs(rand()) % 52;
+		food_y = abs(rand()) % 26;
+		var i = 0;
+		var ok = 1;
+		while (i < vector_size(snake_x)) {
+			if (food_x == vector_get(snake_x, i) && food_y == vector_get(snake_y, i)) {
+				ok = 0;
+			}
+			i = i + 1;
+		}
+		if (ok) {
+			do_break = 1;
+		}
+	}
+}
+
+def check_collision() {
+	var x = vector_get(snake_x, 0);
+	var y = vector_get(snake_y, 0);
+	if (x < 0 || x >= 52) {
+		snake_dead = 1;
+	} else if (y < 0 || y >= 26) {
+		snake_dead = 1;
+	} else {
+		var i = 1;
+		while (i < vector_size(snake_x) && !snake_dead) {
+			if (x == vector_get(snake_x, i) && y == vector_get(snake_y, i)) {
+				snake_dead = 1;
+			}
+			i = i + 1;
+		}
+	}
+}
+
+def snake_advance() {
+	var i = vector_size(snake_x) - 1;
+	while (i > 0) {
+		vector_set(snake_x, i, vector_get(snake_x, i - 1));
+		vector_set(snake_y, i, vector_get(snake_y, i - 1));
+		i = i - 1;
+	}
+	var x = vector_get(snake_x, 0);
+	var y = vector_get(snake_y, 0);
+	if (snake_direction == 0) {
+		vector_set(snake_x, 0, x + 1);
+		vector_set(snake_y, 0, y);
+	} else if (snake_direction == 1) {
+		vector_set(snake_x, 0, x);
+		vector_set(snake_y, 0, y - 1);
+	} else if (snake_direction == 2) {
+		vector_set(snake_x, 0, x - 1);
+		vector_set(snake_y, 0, y);
+	} else {
+		vector_set(snake_x, 0, x);
+		vector_set(snake_y, 0, y + 1);
+	}
+}
+
+def draw_score() {
+	var s = score;
+	asm {
+		#load 1 r0;
+		#literal 47 r1;
+		#literal 0 r2;
+		#printdec r0 r1 r2;
+	};
+}
+
+def draw_game() {
+	var i = 0;
+	while (i < 52) {
+		io_draw('h', i, 1);
+		var j = 2;
+		while (j < 28) {
+			io_draw(' ', i, j);
+			j = j + 1;
+		}
+		i = i + 1;
+	}
+	io_draw('x', food_x, food_y + 2);
+	i = 0;
+	while (i < vector_size(snake_x)) {
+		io_draw('o', vector_get(snake_x, i), vector_get(snake_y, i) + 2);
+		i = i + 1;
+	}
+}
+
+def main() {
+	echo "snake game";
+	snake_x = vector_new(4);
+	snake_y = vector_new(4);
+	score = 0;
+	snake_dead = 0;
+	draw_score();
+	var i = 0;
+	while (i < 4) {
+		vector_push(snake_x, 4 - i - 1);
+		vector_push(snake_y, 0);
+		i = i + 1;
+	}
+	snake_direction = 0;
+	food_x = 8;
+	food_y = 8;
+	while (!snake_dead) {
+		var ch = asm {
+			#literal -1 r0;
+			#keyboard r0 r0 r13;
+		};
+		if (ch == 'w' && !(snake_direction == 3)) {
+			snake_direction = 1;
+		} else if (ch == 'a' && !(snake_direction == 0)) {
+			snake_direction = 2;
+		} else if (ch == 's' && !(snake_direction == 1)) {
+			snake_direction = 3;
+		} else if (ch == 'd' && !(snake_direction == 2)) {
+			snake_direction = 0;
+		}
+		game_tick();
+	}
+	echo "    game over";
+}
