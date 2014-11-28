@@ -95,7 +95,7 @@ sub process_instruction {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(div) r(\d+) r(\d+) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
-	} elsif ($instr =~ /(cmp) r(\d+) r(\d+) r(\d+)/) {
+	} elsif ($instr =~ /(keydec) r(\d+) r(\d+) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(branch) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2);

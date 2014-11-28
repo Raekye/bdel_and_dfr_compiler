@@ -78,6 +78,10 @@ ASTNodeFunctionReference::ASTNodeFunctionReference(std::string function_name) {
 	this->function_name = function_name;
 }
 
+ASTNodeString::ASTNodeString(std::string str) {
+	this->str = str;
+}
+
 ASTNode::~ASTNode() {
 	return;
 }
@@ -164,6 +168,10 @@ ASTNodeFunctionReference::~ASTNodeFunctionReference() {
 	return;
 }
 
+ASTNodeString::~ASTNodeString() {
+	return;
+}
+
 void ASTNodeIdentifier::accept(IASTNodeVisitor* visitor) {
 	visitor->visit(this);
 }
@@ -229,6 +237,10 @@ void ASTNodePhony::accept(IASTNodeVisitor* visitor) {
 }
 
 void ASTNodeFunctionReference::accept(IASTNodeVisitor* visitor) {
+	visitor->visit(this);
+}
+
+void ASTNodeString::accept(IASTNodeVisitor* visitor) {
 	visitor->visit(this);
 }
 

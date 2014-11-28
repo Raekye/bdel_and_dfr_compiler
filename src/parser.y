@@ -64,7 +64,7 @@ typedef void* yyscan_t;
 %token TOKEN_SEMICOLON
 %token <str> TOKEN_NUMBER TOKEN_IDENTIFIER TOKEN_STRING TOKEN_ASSEMBLY_CODE TOKEN_CHAR TOKEN_FUNCTION_REFERENCE
 
-%type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr top_level_expr echo_expr while_loop_expr assembly_expr break_expr expr_or_block block unary_operator_expr function_reference_expr
+%type <node> program expr number binary_operator_expr assignment_expr function_call_expr function_expr if_else_expr top_level_expr echo_expr while_loop_expr assembly_expr break_expr expr_or_block block unary_operator_expr function_reference_expr string_expr
 %type <block> stmts top_level_expr_list
 %type <identifier> identifier
 %type <function_prototype> function_prototype_expr
@@ -122,6 +122,7 @@ expr
 	| assembly_expr { $$ = $1; }
 	| break_expr { $$ = $1; }
 	| function_reference_expr { $$ = $1; }
+	| string_expr { $$ = $1; }
 	| declaration_expr TOKEN_ASSIGN expr {
 		ASTNodeBlock* block = new ASTNodeBlock();
 		block->push($1);
@@ -262,8 +263,15 @@ assembly_lines
 
 echo_expr
 	: TOKEN_ECHO TOKEN_STRING {
-		$$ = new ASTNodeEcho(*$2);
+		$$ = new ASTNodeEcho($2->substr(1, $2->length() - 2));
 		delete $2;
+	}
+	;
+
+string_expr
+	: TOKEN_STRING {
+		$$ = new ASTNodeString($1->substr(1, $1->length() - 2));
+		delete $1;
 	}
 	;
 

@@ -6,6 +6,8 @@
 #define SAVE_TOKEN yylval->str = new std::string(yytext, yyleng)
 #define YY_USER_ACTION { yylloc->first_line = yylineno; /*yylloc->last_line = yylineno + yylloc->lines(yyleng); /*yylloc->first_column = colnum; yylloc->last_column = colnum + yyleng;*/ }
 
+//static void comment();
+
 %}
 
 %option reentrant
@@ -16,6 +18,8 @@
 %option yylineno
 %option bison-bridge
 %option bison-locations
+
+%x IN_COMMENT
 
 LPAREN "("
 RPAREN ")"
@@ -79,6 +83,15 @@ while { return TOKEN_WHILE; }
 echo { return TOKEN_ECHO; }
 asm { return TOKEN_ASM; }
 break { return TOKEN_BREAK; }
+<INITIAL>{
+     "/*" { BEGIN(IN_COMMENT); }
+}
+<IN_COMMENT>{
+     "*/" { BEGIN(INITIAL); }
+     [^*\n]+ { /* eat comment in chunks */ }
+     "*" { /* eat the lone star */ }
+     \n { yylineno++; }
+}
 
 {NUMBER} { SAVE_TOKEN; return TOKEN_NUMBER; }
 {IDENTIFIER} { SAVE_TOKEN; return TOKEN_IDENTIFIER; }
@@ -92,3 +105,18 @@ break { return TOKEN_BREAK; }
 . { std::cout << "Unknown token!" << std::endl; }
 
 %%
+
+/*void comment() {
+	char c, c1;
+	loop:
+	while ((c = input()) != '*' && c != 0) {
+		putchar(c);
+	}
+	if ((c1 = input()) != '/' && c != 0) {
+		unput(c1);
+		goto loop;
+	}
+	if (c != 0) {
+		putchar(c1);
+	}
+}*/

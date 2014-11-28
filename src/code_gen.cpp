@@ -597,8 +597,7 @@ void CodeGen::visit(ASTNodeEcho* node) {
 		this->global_initializers.push_back(node);
 		return;
 	}
-	for (int32_t i = 1; i < node->str.length() - 1; i++) {
-		std::cout << "literal " << CodeGen::charcode_from_char.at(node->str.substr(i, 1)) << " r" << this->register_result << std::endl;
+	for (int32_t i = 0; i < node->str.length(); i++) {
 		ASTNodeLiteral x(CodeGen::charcode_from_char.at(node->str.substr(i, 1)));
 		ASTNodeFunctionCall fn_call("io_putchar", new std::vector<ASTNode*>(1, new ASTNodePhony(&x)));
 		fn_call.accept(this);
@@ -669,5 +668,32 @@ void CodeGen::visit(ASTNodeFunctionReference* node) {
 	int32_t index = this->register_result;
 	std::cout << "literal :" << "_" << std::get<1>(*(it->second)) << "__" << node->function_name << " r" << index << std::endl;
 	this->current_register = index;
+	this->nodes_visited++;
+}
+
+void CodeGen::visit(ASTNodeString* node) {
+	if (this->in_top_level() && !this->in_global_init) {
+		this->global_initializers.push_back(node);
+		return;
+	}
+	ASTNodeFunctionCall vector_new("vector_new", new std::vector<ASTNode*>(1, new ASTNodeLiteral(node->str.size())));
+	vector_new.accept(this);
+	int32_t register_vector_ptr = this->register_return_value;
+	int32_t register_array_ptr = this->register_tmp;
+	ASTNodeLiteral x(node->str.size());
+	x.accept(this);
+	std::cout << "inc r" << register_vector_ptr << std::endl;
+	std::cout << "inc r" << register_vector_ptr << std::endl;
+	std::cout << "heap r" << this->current_register << " r" << register_vector_ptr << std::endl;
+	std::cout << "dec r" << register_vector_ptr << std::endl;
+	std::cout << "dec r" << register_vector_ptr << std::endl;
+	std::cout << "unheap r" << register_vector_ptr << " r" << register_array_ptr << std::endl;
+	for (int32_t i = 0; i < node->str.length(); i++) {
+		ASTNodeLiteral x(CodeGen::charcode_from_char.at(node->str.substr(i, 1)));
+		x.accept(this);
+		std::cout << "heap r" << this->current_register << " r" << register_array_ptr << " # " << node->str.substr(i, 1) << std::endl;
+		std::cout << "inc r" << register_array_ptr << std::endl;
+	}
+	this->current_register = register_vector_ptr;
 	this->nodes_visited++;
 }

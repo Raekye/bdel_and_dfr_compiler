@@ -104,6 +104,19 @@ def io_putdec(var ch) {
 	io_x = io_x + 4;
 }
 
+def io_readdec() {
+	io_normalize(4);
+	var x = io_x;
+	var y = io_y;
+	var z = asm {
+		#load 3 r0;
+		#load 2 r1;
+		#keydec r0 r1 r13;
+	};
+	io_x = io_x + 4;
+	z;
+}
+
 def io_endl() {
 	io_x = 255;
 	io_normalize(0);
@@ -292,6 +305,15 @@ def mergesort(var pt) {
 		vector_delete(right_sorted);
 		sorted;
 	}
+}
+
+def io_printstring(var vec) {
+	var i = 0;
+	while (i < vector_size(vec)) {
+		io_putchar(vector_get(vec, i));
+		i = i + 1;
+	}
+	vec;
 }
 
 def rand() {

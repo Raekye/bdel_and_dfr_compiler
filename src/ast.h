@@ -215,6 +215,16 @@ public:
 	virtual ~ASTNodeFunctionReference();
 };
 
+class ASTNodeString : public ASTNode {
+public:
+	std::string str;
+
+	ASTNodeString(std::string);
+	virtual void accept(IASTNodeVisitor*) override;
+
+	virtual ~ASTNodeString();
+};
+
 class IASTNodeVisitor {
 public:
 	virtual void visit(ASTNodeIdentifier*) = 0;
@@ -234,6 +244,7 @@ public:
 	virtual void visit(ASTNodeBreak*) = 0;
 	virtual void visit(ASTNodePhony*) = 0;
 	virtual void visit(ASTNodeFunctionReference*) = 0;
+	virtual void visit(ASTNodeString*) = 0;
 };
 
 #endif /* __AST_H_ */
