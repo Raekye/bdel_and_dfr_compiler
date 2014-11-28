@@ -91,6 +91,19 @@ def io_readhex() {
 	z;
 }
 
+def io_putdec(var ch) {
+	io_normalize(4);
+	var x = io_x;
+	var y = io_y;
+	asm {
+		%load 3 r0;
+		%load 2 r1;
+		%load 1 r2;
+		%printdec r0 r1 r2;
+	};
+	io_x = io_x + 4;
+}
+
 def io_endl() {
 	io_x = 255;
 	io_normalize(0);
@@ -127,14 +140,14 @@ def malloc(var n) {
 	};
 	var ret = 0;
 	var break_i = 0;
-	while ((!break_i) && i < 4096) {
+	while (!break_i && i < 1024) {
 		var x = heap_get(i);
 		if (x == 0) {
 			i = i + 2;
 			var j = 0;
 			var ok = 1;
 			var break_j = 0;
-			while ((!break_j) && j < n) {
+			while (!break_j && j < n) {
 				if (heap_get(i + j) == 0) {
 					j = j + 1;
 				} else {
@@ -154,8 +167,8 @@ def malloc(var n) {
 			i = i + 2 + heap_get(i + 1);
 		}
 	}
-	if (i > 4096 - 1) {
-		error(2);
+	if (i > 1024 - 1) {
+		error(3);
 	}
 	ret;
 }
@@ -224,4 +237,73 @@ def vector_pop(var pt) {
 	var x = vector_get(pt, next_size);
 	heap_set(pt + 2, next_size);
 	x;
+}
+
+def mergesort(var pt) {
+	var size = vector_size(pt);
+	if (size < 2) {
+		var cp = vector_new(2);
+		var i = 0;
+		while (i < size) {
+			vector_push(cp, vector_get(pt, i));
+			i = i + 1;
+		}
+		cp;
+	} else {
+		var left = vector_new(4);
+		var right = vector_new(4);
+		var mid = size / 2;
+		var i = 0;
+		while (i < mid) {
+			vector_push(left, vector_get(pt, i));
+			i = i + 1;
+		}
+		while (i < size) {
+			vector_push(right, vector_get(pt, i));
+			i = i + 1;
+		}
+		var left_sorted = mergesort(left);
+		vector_delete(left);
+		var right_sorted = mergesort(right);
+		vector_delete(right);
+		var sorted = vector_new(4);
+		i = 0;
+		var j = 0;
+		while (i < vector_size(left_sorted) && j < vector_size(right_sorted)) {
+			var a = vector_get(left_sorted, i);
+			var b = vector_get(right_sorted, j);
+			if (b > a) {
+				vector_push(sorted, a);
+				i = i + 1;
+			} else {
+				vector_push(sorted, b);
+				j = j + 1;
+			}
+		}
+		while (i < vector_size(left_sorted)) {
+			vector_push(sorted, vector_get(left_sorted, i));
+			i = i + 1;
+		}
+		while (j < vector_size(right_sorted)) {
+			vector_push(sorted, vector_get(right_sorted, j));
+			j = j + 1;
+		}
+		vector_delete(left_sorted);
+		vector_delete(right_sorted);
+		sorted;
+	}
+}
+
+def rand() {
+	asm {
+		%rand r13;
+	};
+}
+
+def abs(var x) {
+	if (x < 0) {
+		0 - x;
+	} else {
+		x;
+	}
 }

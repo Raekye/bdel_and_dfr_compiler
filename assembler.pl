@@ -148,7 +148,7 @@ sub process_instruction {
 	} elsif ($instr =~ /(or) r(\d+) r(\d+) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(rand) r(\d+)/) {
-		print_binary_instruction(binary_opcode_from_string($1));
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2);
 	} elsif ($instr =~ /(mod) r(\d+) r(\d+) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(die)/) {

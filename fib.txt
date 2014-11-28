@@ -1,0 +1,28 @@
+def fib(var x);
+
+def main() {
+	echo "fibonacci numbers";
+	io_endl();
+	io_endl();
+	echo "enter 0 to stop";
+	io_endl();
+	var x = 1;
+	while (x) {
+		echo "fib of ";
+		x = io_readhex();
+		echo " is ";
+		io_puthex(fib(x));
+		io_endl();
+	}
+	echo "done";
+}
+
+def fib(var x) {
+	if (x == 0) {
+		0;
+	} else if (x == 1) {
+		1;
+	} else {
+		fib(x - 1) + fib(x - 2);
+	}
+}

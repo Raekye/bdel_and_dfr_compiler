@@ -1,0 +1,42 @@
+def main() {
+	echo "mergesort";
+	io_endl();
+	io_endl();
+	echo "enter length ";
+	var n = io_readhex();
+	io_endl();
+	var vec = vector_new(4);
+	var i = 0;
+	while (i < n) {
+		echo "element ";
+		io_puthex(i);
+		io_putchar(' ');
+		vector_push(vec, io_readhex());
+		io_endl();
+		i = i + 1;
+	}
+	io_endl();
+	echo "your list";
+	io_endl();
+	i = 0;
+	while (i < vector_size(vec)) {
+		io_puthex(vector_get(vec, i));
+		io_putchar(' ');
+		i = i + 1;
+	}
+	io_endl();
+	io_endl();
+	echo "sorted";
+	io_endl();
+	var sorted = mergesort(vec);
+	free(vec);
+	i = 0;
+	while (i < vector_size(sorted)) {
+		io_puthex(vector_get(sorted, i));
+		io_putchar(' ');
+		i = i + 1;
+	}
+	io_endl();
+	io_endl();
+	echo "done";
+}
