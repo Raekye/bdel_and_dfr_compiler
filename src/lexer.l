@@ -50,7 +50,7 @@ WS [ \r\n\t]+
 CHAR '[a-z0-9 ]'
 
 STRING \"[a-z0-9 ]+\"
-ASSEMBLY_CODE #[a-z0-9_: "]+
+ASSEMBLY_CODE #[a-z0-9_: "-]+
 
 %%
 

@@ -25,6 +25,8 @@ def io_clear() {
 		}
 		i = i + 1;
 	}
+	io_x = 0;
+	io_y = 0;
 }
 
 def io_normalize(var n) {
@@ -34,8 +36,6 @@ def io_normalize(var n) {
 	}
 	if (io_y > 28 - 1) {
 		io_clear();
-		io_x = 0;
-		io_y = 0;
 	}
 }
 
@@ -115,6 +115,16 @@ def io_readdec() {
 	};
 	io_x = io_x + 4;
 	z;
+}
+
+def io_cr() {
+	io_x = 0;
+	var i = 0;
+	while (i < 28) {
+		io_putchar(' ');
+		i = i + 1;
+	}
+	io_x = 0;
 }
 
 def io_endl() {

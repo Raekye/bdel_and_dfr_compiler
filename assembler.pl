@@ -151,6 +151,8 @@ sub process_instruction {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2);
 	} elsif ($instr =~ /(mod) r(\d+) r(\d+) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
+	} elsif ($instr =~ /(heapreset)/) {
+		print_binary_instruction(binary_opcode_from_string($1));
 	} elsif ($instr =~ /(die)/) {
 		print_binary_instruction(binary_opcode_from_string($1));
 	} else {
@@ -194,6 +196,7 @@ sub binary_opcode_from_string {
 		'gt' => 31,
 		'rand' => 32,
 		'mod' => 33,
+		'heapreset' => 36,
 		'die' => -1,
 	);
 	return $map{$_[0]};
