@@ -350,7 +350,7 @@ void CodeGen::visit(ASTNodeBinaryOperator* node) {
 	if (this->in_top_level() && !this->in_global_init) {
 		this->global_initializers.push_back(node);
 		return;
-	}
+	}/*
 	if (node->op == eLOGICAL_AND) {
 		ASTNodeIfElse f(new ASTNodePhony(node->lhs), new ASTNodePhony(node->rhs), new ASTNodeLiteral(0));
 		f.accept(this);
@@ -359,7 +359,7 @@ void CodeGen::visit(ASTNodeBinaryOperator* node) {
 		ASTNodeIfElse f(new ASTNodePhony(node->lhs), new ASTNodeLiteral(1), new ASTNodePhony(node->rhs));
 		f.accept(this);
 		return;
-	}
+	}*/
 	int32_t reg_a = this->register_tmp;
 	node->lhs->accept(this);
 	this->stack_pointer(1, "binary operation register tmp save");
@@ -394,7 +394,11 @@ void CodeGen::visit(ASTNodeBinaryOperator* node) {
 			std::cout << "gt r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
 			break;
 		case eLOGICAL_AND:
+			std::cout << "and r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
+			break;
 		case eLOGICAL_OR:
+			std::cout << "or r" << reg_a << " r" << reg_b << " r" << reg_c << std::endl;
+			break;
 		case eLOGICAL_NOT:
 			throw std::runtime_error("Not binary operator");
 	}

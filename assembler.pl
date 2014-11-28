@@ -149,6 +149,8 @@ sub process_instruction {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(rand) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1));
+	} elsif ($instr =~ /(mod) r(\d+) r(\d+) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
 	} elsif ($instr =~ /(die)/) {
 		print_binary_instruction(binary_opcode_from_string($1));
 	} else {
@@ -185,12 +187,13 @@ sub binary_opcode_from_string {
 		'dec' => 24,
 		'mov' => 25,
 		'not' => 26,
-		'and' => 27,
-		'or' => 28,
+		'or' => 27,
+		'and' => 28,
 		'eq' => 29,
 		'lt' => 30,
 		'gt' => 31,
 		'rand' => 32,
+		'mod' => 33,
 		'die' => -1,
 	);
 	return $map{$_[0]};
