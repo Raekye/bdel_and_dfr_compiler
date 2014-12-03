@@ -151,8 +151,14 @@ sub process_instruction {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2);
 	} elsif ($instr =~ /(mod) r(\d+) r(\d+) r(\d+)/) {
 		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3, 2, $4);
+	} elsif ($instr =~ /^(interrupt) (\d+) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2, 2, $3);
+	} elsif ($instr =~ /(uninterrupt)/) {
+		print_binary_instruction(binary_opcode_from_string($1));
 	} elsif ($instr =~ /(heapreset)/) {
 		print_binary_instruction(binary_opcode_from_string($1));
+	} elsif ($instr =~ /(unkey) r(\d+)/) {
+		print_binary_instruction(binary_opcode_from_string($1), 2, $2);
 	} elsif ($instr =~ /(die)/) {
 		print_binary_instruction(binary_opcode_from_string($1));
 	} else {
@@ -196,7 +202,11 @@ sub binary_opcode_from_string {
 		'gt' => 31,
 		'rand' => 32,
 		'mod' => 33,
+		'interrupt' => 34,
+		'uninterrupt' => 35,
 		'heapreset' => 36,
+		'keycount' => 37,
+		'unkey' => 38,
 		'die' => -1,
 	);
 	return $map{$_[0]};

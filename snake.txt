@@ -13,20 +13,43 @@ def draw_score();
 def pick_new_x();
 
 def game_tick() {
-	var x = vector_get(snake_x, 0);
-	var y = vector_get(snake_y, 0);
-	if (food_x == x && food_y == y) {
-		vector_push(snake_x, 0);
-		vector_push(snake_y, 0);
-		score = score + 1;
-		draw_score();
-		pick_new_x();
-	}
-	snake_advance();
-	check_collision();
 	if (!snake_dead) {
-		draw_game();
+		var x = vector_get(snake_x, 0);
+		var y = vector_get(snake_y, 0);
+		if (food_x == x && food_y == y) {
+			vector_push(snake_x, 0);
+			vector_push(snake_y, 0);
+			score = score + 1;
+			draw_score();
+			pick_new_x();
+		}
+		snake_advance();
+		check_collision();
+		if (!snake_dead) {
+			draw_game();
+		}
 	}
+	asm {
+		#uninterrupt;
+	};
+}
+
+def do_stuff() {
+	var ch = asm {
+		#unkey r13;
+	};
+	if (ch == 'w' && !(snake_direction == 3)) {
+		snake_direction = 1;
+	} else if (ch == 'a' && !(snake_direction == 0)) {
+		snake_direction = 2;
+	} else if (ch == 's' && !(snake_direction == 1)) {
+		snake_direction = 3;
+	} else if (ch == 'd' && !(snake_direction == 2)) {
+		snake_direction = 0;
+	}
+	asm {
+		#uninterrupt;
+	};
 }
 
 def pick_new_x() {
@@ -135,21 +158,24 @@ def main() {
 	snake_direction = 0;
 	food_x = 8;
 	food_y = 8;
+	var address = :game_tick;
+	asm {
+		#load 1 r0;
+		#interrupt 0 r0;
+	};
+	address = :do_stuff;
+	asm {
+		#load 1 r0;
+		#interrupt 1 r0;
+	};
 	while (!snake_dead) {
-		var ch = asm {
-			#literal -1 r0;
-			#keyboard r0 r0 r13;
-		};
-		if (ch == 'w' && !(snake_direction == 3)) {
-			snake_direction = 1;
-		} else if (ch == 'a' && !(snake_direction == 0)) {
-			snake_direction = 2;
-		} else if (ch == 's' && !(snake_direction == 1)) {
-			snake_direction = 3;
-		} else if (ch == 'd' && !(snake_direction == 2)) {
-			snake_direction = 0;
-		}
-		game_tick();
+		1;
 	}
+	asm {
+		#literal 0 r0;
+		#interrupt 0 r0;
+	};
+	free(snake_x);
+	free(snake_y);
 	echo "    game over";
 }
