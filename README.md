@@ -1,6 +1,9 @@
 # Hmmmm
 Hmmm
 
+# Processor
+Processor source is hosted at [github.com/Lrac/bdel_and_dfr_processor][2]
+
 # Dependencies
 - g++
 - flex
@@ -38,3 +41,4 @@ Hmmm
 - [Sufficient conditions for Turing-completeness][1]
 
 [1]: http://cs.stackexchange.com/questions/991/are-there-minimum-criteria-for-a-programming-language-being-turing-complete
+[2]: https://github.com/Lrac/bdel_and_dfr_processor
